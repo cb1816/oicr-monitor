@@ -40,8 +40,8 @@ function loadJSON(rel) {
 
 async function fetchScreener() {
   const rows = [];
-  for (let page = 1; page <= 5; page++) {
-    const url = `${API}?page=${page}&pageSize=2000&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
+  for (let page = 1; page <= 6; page++) {
+    const url = `${API}?page=${page}&pageSize=15000&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
     const res = await fetch(url, { headers: HEADERS });
     if (!res.ok) throw new Error('Morningstar HTTP ' + res.status);
     const j = await res.json();
