@@ -91,7 +91,8 @@ function build(rows, isinSet, series) {
       r2(r.OngoingCostActual),
       mom,
       1,                        // nc (ricalcolato sotto)
-      r2(r.GBRReturnW1)
+      r2(r.GBRReturnW1),
+      secId               // 17: per link scheda Morningstar
     ]);
   }
 
