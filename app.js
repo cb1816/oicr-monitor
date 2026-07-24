@@ -107,7 +107,11 @@ function viewIdee(){const metricLbl=isMom()?'momentum (3-6m)':'rend. '+mLabel();
   macros.forEach(m=>{const g=withData(F.filter(f=>f[I.macro]===m&&(!state.q||(f[I.name]+' '+f[I.isin]).toLowerCase().includes(state.q)))).sort((a,b)=>val(b)-val(a));
     if(!g.length)return;h+='<div class="sec top">'+m+' — migliori per '+metricLbl+'</div>'+g.slice(0,5).map((f,i)=>rowCard(f,i+1,'t')).join('');
     const qual=g.filter(f=>{const r=catRank(f);return f[I.star]>=4&&r&&r.q===1}).slice(0,5);
-    if(qual.length){h+='<div class="sec">'+m+' — qualità (≥4★ e top quartile categoria)</div>'+qual.map(f=>rowCard(f,null)).join('');}});
+    if(qual.length){h+='<div class="sec">'+m+' — qualità (≥4★ e top quartile categoria)</div>'+qual.map(f=>rowCard(f,null)).join('');}
+    const ac=g.filter(f=>f[I.mom]!=null&&f[I.mom]>0&&(accel(f)||0)>0.5).sort((a,b)=>accel(b)-accel(a)).slice(0,5);
+    if(ac.length){h+='<div class="sec top">'+m+' — 🚀 in accelerazione (early trend)</div>'+ac.map(f=>rowCard(f,null)).join('');}
+    const sv=g.filter(f=>f[I.mom]!=null&&f[I.mom]<0&&(accel(f)||0)>0.5&&f[I.star]>=3).sort((a,b)=>accel(b)-accel(a)).slice(0,5);
+    if(sv.length){h+='<div class="sec">'+m+' — ↗️ possibili svolte (momentum negativo, in risalita)</div>'+sv.map(f=>rowCard(f,null)).join('');}});
   return h;}
 function pickCat(c){state.cat=c;state.tab='cat';document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.tab==='cat'));buildCatSel();render();}
 
@@ -191,6 +195,8 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   if(f[I.mom]!=null&&r){b+='<div class="mlbl">Momentum (media 3-6 mesi) — punteggio nella categoria</div>'+
     '<div class="kv"><div class="k">'+esc(f[I.cat])+'</div><div class="v">'+p(f[I.mom])+' &nbsp;·&nbsp; '+
     (f[I.cat]?scoreOf(f)+'/100':'')+'</div><div class="mombar"><i style="width:'+scoreOf(f)+'%"></i></div></div>';}
+  var AC=accState(f),av=accel(f);
+  if(AC&&av!=null)b+='<div class="mlbl">Accelerazione (1 mese vs passo del trend)</div><div class="kv"><div class="k">'+(av>0?'+':'')+av.toFixed(1)+' punti/mese</div><div class="v">'+AC.ico+' '+AC.lbl+'</div></div>';
   if(r)b+='<div class="note">Nella categoria <b>'+esc(f[I.cat])+'</b>: '+r.rank+'° su '+r.n+' per '+(isMom()?'momentum':'rend. '+mLabel())+' ('+(r.q===1?'top quartile':r.q===4?'ultimo quartile':r.q+'° quartile')+').</div>';
   if(f[I.sec]&&String(f[I.sec]).length===10)b+='<a target="_blank" rel="noopener" style="display:inline-block;margin:10px 0 2px;padding:9px 14px;background:#2563eb;color:#fff;border-radius:9px;text-decoration:none;font-weight:600;font-size:13px" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+f[I.sec]+'">Scheda completa Morningstar ↗</a>';
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' classi</span></div>'+
@@ -198,6 +204,13 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');}
 function scoreOf(f){const key=f[I.cat]+'|14';if(!catCache[key]){const a=F.filter(x=>x[I.cat]===f[I.cat]&&x[I.mom]!=null).sort((x,y)=>y[I.mom]-x[I.mom]);catCache[key]=a.map(x=>x[I.isin]);}
   const a=catCache[key];const i=a.indexOf(f[I.isin]);return i<0?50:(a.length>1?Math.round((a.length-i-1)/(a.length-1)*100):50);}
+function accel(f){var m1=f[I.m1],m3=f[I.m3],m6=f[I.m6];if(m1==null||(m3==null&&m6==null))return null;
+  var p=[];if(m3!=null)p.push(m3/3);if(m6!=null)p.push(m6/6);
+  return Math.round((m1-p.reduce(function(a,b){return a+b},0)/p.length)*10)/10;}
+function accState(f){var a=accel(f),m=f[I.mom];if(a==null||m==null)return null;var th=0.3;
+  if(a>th)return m>=0?{ico:'🚀',lbl:'Trend in rafforzamento'}:{ico:'↗️',lbl:'Possibile svolta (in risalita)'};
+  if(a<-th)return m>=0?{ico:'⚠️',lbl:'Trend in raffreddamento'}:{ico:'🔻',lbl:'In peggioramento'};
+  return {ico:'→',lbl:'Andamento stabile'};}
 function openInfo(){
   const s='<button class="closex" onclick="closeOv()">✕</button>'+
     '<h2>Come funziona OICR Monitor</h2>'+
@@ -214,6 +227,7 @@ function openInfo(){
     '<div class="istep"><div class="n">1</div><div><b>Momentum del fondo</b> — oltre al valore %, un <b>punteggio 0–100</b> = la sua posizione <b>dentro la categoria</b> (100 = il più forte). Confronti solo fondi comparabili.</div></div>'+
     '<div class="istep"><div class="n">2</div><div><b>Momentum della categoria</b> — la <b>mediana</b> dei suoi fondi dice quali categorie sono <b>"in salita"</b> ora. La <b>Mappa</b> le ordina dalla più calda alla più fredda.</div></div>'+
     '<div class="istep"><div class="n">3</div><div><b>Idee</b> — l\'app incrocia momentum e <b>qualità</b>: fondi con forte momentum <b>e</b> rating ≥4★ in cima alla loro categoria.</div></div>'+
+    '<div class="istep"><div class="n">4</div><div><b>Accelerazione</b> — confronta il rendimento a 1 mese col passo medio del trend: 🚀 in accelerazione, ⚠️ in raffreddamento, ↗️ possibile svolta (momentum negativo ma in risalita), 🔻 in peggioramento. Nella scheda del fondo e nelle Idee.</div></div>'+
     '<div class="ip" style="margin:6px 0 0;font-size:11.5px;color:var(--mut)"><b style="color:var(--hot)">Esempio:</b> nella Mappa vedi le categorie più calde → entri e prendi i fondi in testa con buon rating → spunto pronto, già confrontato con i pari.</div>'+
     '</div>'+
     '<div class="note">Il momentum è un segnale di <b>breve periodo</b>, non una previsione: va combinato con rischio, costo e obiettivo del cliente. Strumento informativo, non consulenza né sollecitazione all\'investimento. Le performance passate non sono indicative di quelle future.</div>';
