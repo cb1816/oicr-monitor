@@ -1,6 +1,6 @@
 const DATA=window.DATA;
 const F=DATA.funds,CATS=DATA.cats,MO=DATA.macroOrder,META=DATA.meta,SER=DATA.series||{};
-const I={isin:0,name:1,cat:2,macro:3,ytd:4,m1:5,m3:6,m6:7,r1:8,r3:9,r5:10,star:11,sd:12,oc:13,mom:14,nc:15,w1:16};
+const I={isin:0,name:1,cat:2,macro:3,ytd:4,m1:5,m3:6,m6:7,r1:8,r3:9,r5:10,star:11,sd:12,oc:13,mom:14,nc:15,w1:16,sec:17};
 const METRICS=[['1 sett.',16],['1 mese',5],['YTD',4],['1 anno',8],['3 anni p.a.',9],['5 anni p.a.',10],['🔥 Momentum',14]];
 let state={metric:8,macro:null,cat:null,q:'',tab:'rank',catSort:'val'};
 const isMom=()=>state.metric===14;
@@ -192,6 +192,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
     '<div class="kv"><div class="k">'+esc(f[I.cat])+'</div><div class="v">'+p(f[I.mom])+' &nbsp;·&nbsp; '+
     (f[I.cat]?scoreOf(f)+'/100':'')+'</div><div class="mombar"><i style="width:'+scoreOf(f)+'%"></i></div></div>';}
   if(r)b+='<div class="note">Nella categoria <b>'+esc(f[I.cat])+'</b>: '+r.rank+'° su '+r.n+' per '+(isMom()?'momentum':'rend. '+mLabel())+' ('+(r.q===1?'top quartile':r.q===4?'ultimo quartile':r.q+'° quartile')+').</div>';
+  if(f[I.sec]&&String(f[I.sec]).length===10)b+='<a target="_blank" rel="noopener" style="display:inline-block;margin:10px 0 2px;padding:9px 14px;background:#2563eb;color:#fff;border-radius:9px;text-decoration:none;font-weight:600;font-size:13px" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+f[I.sec]+'">Scheda completa Morningstar ↗</a>';
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' classi</span></div>'+
     '<div class="note">Fonte: Morningstar Italia · rendimenti in EUR al '+META.date+'. Informativa, non sollecitazione all\'investimento.</div>';
   document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');}
