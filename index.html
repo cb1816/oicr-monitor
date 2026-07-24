@@ -169,7 +169,7 @@ nav button.on{color:var(--accent)}
     }catch(e){}
     return d;
   }
-  function run(d){window.DATA=d;var s=document.createElement('script');s.src='app.js?v=4';document.body.appendChild(s);}
+  function run(d){window.DATA=d;var s=document.createElement('script');s.src='app.js?v=5';document.body.appendChild(s);}
   function withFilter(d){
     return fetch('data/isins.json').then(function(r){return r.json()})
       .then(function(isins){return applyIsinFilter(d,isins)})
