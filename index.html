@@ -181,5 +181,5 @@ nav button.on{color:var(--accent)}
     .catch(function(){fetch('data/snapshot.json').then(function(r){return r.json()}).then(function(d){d.meta.source+=' · snapshot offline';return withFilter(d)}).then(run)});
 })();
 </script>
-<a href="https://etf-monitor-italia.vercel.app" style="position:fixed;bottom:14px;right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a></body>
+<a href="https://etf-monitor-italia.vercel.app" style="position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a></body>
 </html>
