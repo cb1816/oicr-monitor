@@ -38,19 +38,27 @@ function loadJSON(rel) {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', rel), 'utf8'));
 }
 
+const PAGE_SIZE = 10000;
+const MAX_PAGES = 10;
+
 async function fetchScreener() {
   const rows = [];
-  for (let page = 1; page <= 6; page++) {
-    const url = `${API}?page=${page}&pageSize=15000&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
+  let total = 0;
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const url = `${API}?page=${page}&pageSize=${PAGE_SIZE}&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
     const res = await fetch(url, { headers: HEADERS });
     if (!res.ok) throw new Error('Morningstar HTTP ' + res.status);
     const j = await res.json();
     const batch = j.rows || j.securities || [];
     rows.push(...batch);
-    const total = j.total || 0;
-    if (rows.length >= total || batch.length === 0) break;
+    total = j.total || total;
+    // una pagina piu corta della richiesta significa fine dei dati
+    if (batch.length < PAGE_SIZE) break;
+    if (total && rows.length >= total) break;
   }
   if (rows.length === 0) throw new Error('Screener vuoto');
+  // meglio lo snapshot che una classifica costruita su dati monchi
+  if (total && rows.length < total * 0.99) throw new Error('Screener incompleto ' + rows.length + '/' + total);
   return rows;
 }
 
