@@ -78,8 +78,8 @@ function build(rows, isinSet, series) {
     const isin = r.isin || r.Isin;
     if (!isin || !isinSet.has(isin)) continue;
     const secId = r.SecId || isin;
-    if (seen.has(secId)) continue;
-    seen.add(secId);
+    if (seen.has(isin)) continue; // stesso ISIN quotato in piu valute = una riga sola
+    seen.add(isin);
     const cat = r.categoryName || null;
     const m3 = r2(r.GBRReturnM3), m6 = r2(r.GBRReturnM6);
     const mom = (m3 !== null && m6 !== null) ? r2((m3 + m6) / 2) : (m3 !== null ? m3 : m6);
