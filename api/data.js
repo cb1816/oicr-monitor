@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const API = 'https://tools.morningstar.it/api/rest.svc/klr5zyak8x/security/screener';
+const API = 'https://lt.morningstar.com/api/rest.svc/9vehuxllxs/security/screener';
 const DATAPOINTS = [
   'isin', 'SecId', 'Name', 'categoryName',
   'GBRReturnW1', 'GBRReturnM0', 'GBRReturnM1', 'GBRReturnM3', 'GBRReturnM6',
