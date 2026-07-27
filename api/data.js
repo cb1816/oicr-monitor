@@ -135,9 +135,11 @@ function build(rows, isinSet, series) {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  // fuori dal try: servono anche allo snapshot in caso di fallback
+  let series = {};
+  try { series = loadJSON('series.json'); } catch (e) {}
   try {
     const isinSet = new Set(loadJSON('isins.json'));
-    const series = loadJSON('series.json');
     const rows = await fetchScreener();
     const data = build(rows, isinSet, series);
     res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
@@ -146,6 +148,8 @@ module.exports = async (req, res) => {
     // Fallback: snapshot statico incluso nel repo
     try {
       const snap = loadJSON('snapshot.json');
+      snap.series = series;
+      snap.meta.nSeries = Object.keys(series).length;
       snap.meta.source += ' · snapshot (refresh fallito: ' + String(err.message || err).slice(0, 80) + ')';
       res.setHeader('Cache-Control', 's-maxage=900');
       res.status(200).json(snap);
