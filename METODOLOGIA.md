@@ -188,22 +188,75 @@ segnale d'acquisto.
 
 ---
 
-## 7. ⚠️ Deduplica per classe di quota — NON implementata
+## 7. Deduplica per classe di quota — implementata il 25/08/2026
 
-Il sito congelato mostra **4.399 fondi partendo da 6.138 classi**. `api/data.js` **non
-deduplica**: tiene una riga per ISIN, e infatti l'endpoint restituisce `nTot: 6138`.
+**Regola** (decisa da Corrado sui casi concreti dello snapshot): *"stesso fondo" = stesso
+portafoglio a meno di valuta, cedola e classe di commissione; la copertura del cambio resta
+una cosa a sé.*
 
-La regola del vecchio build **non è ricostruibile dal risultato già deduplicato**: nel file
-congelato le classi A e S, R e Rd, e le coperture HEUR/HCHF restano separate — quindi la
-regola non tocca né la lettera di classe né la valuta, e non si capisce cosa collassi il 28%
-delle righe. Tre regole candidate provate il 25/08/2026 danno 3.964, 4.454 e 5.242 fondi:
-**nessuna è idempotente** sul file congelato.
+Si **uniscono** le classi che differiscono solo per:
 
-Perché conta: senza deduplica le **mediane di categoria** sono calcolate su 6.138 classi, e
-un gestore con molte classi in gamma pesa di più. Va deciso **prima** di ricablare il sito,
-perché è lì che diventa visibile.
+- **valuta** della quota (EUR / USD / GBP / CHF …);
+- **cedola**: accumulo vs distribuzione (Acc / Inc / Dis / ANN / Cap);
+- **classe di commissione** (A / E / R / Rd / L / I …).
 
-`nc` (campo 15) resta come badge "N classi", raggruppando per `baseName()`.
+Si **tengono separate** le versioni con **copertura del cambio** (`H`, `Hdg`, `H1`, e le
+sigle di classe che portano la H: `AH`, `Bh`, `Bdh`, `AHX`, `CHR`): profilo di rischio
+diverso, e Morningstar stessa spesso le mette in un'altra categoria.
+
+### Come è scritta
+
+`splitClasse(nome)` in `api/data.js` sfronda il nome **solo dalla coda** e si ferma al primo
+token non riconosciuto: il nucleo del nome sta all'inizio e non viene mai intaccato. Due
+vincoli tengono a bada i falsi accorpamenti, ed entrambi sono nati da casi veri:
+
+1. **Al massimo una sigla di classe per nome.** Senza questo limite
+   `Schroder ISF Global Eq Alp A` perde anche `Alp` e finisce addosso a `… Eq Yld A`.
+2. **Nessuna cedola dopo la sigla di classe.** L'ordine Morningstar è
+   `[nome] [classe] [cedola] [valuta] [copertura]`, quindi un `Inc` che compare a sinistra
+   della classe è l'*Income* del nome (`Pan European Eq Inc`), non una cedola.
+
+Più tre filtri sul vocabolario, tarati sull'universo vero: le sigle di 2 lettere geografiche
+o tematiche (`US`, `EM`, `HY`, `ESG` …) non sono classi; le sigle di 3 lettere maiuscole non
+lo sono mai tranne quelle con la H e i numerali di serie (così `LUX`, `MSI`, `CIB`, `ISF`
+restano nel nome); le sigle miste maiuscolo/minuscolo valgono solo con le minuscole tipiche
+delle classi (`Bd`, `Bh`, `Bgd`, `Bdh`), così `Bal`, `Sty`, `Alp`, `Yld`, `Eq` restano parole
+di nome. I numeri interi non si toccano mai: `Advisory 4` ≠ `Advisory 5`,
+`Obiettivo 2030` ≠ `Obiettivo 2035`. Alla chiave si aggiunge il **prefisso ISIN** (domicilio)
+come cintura di sicurezza.
+
+La precisione conta più della copertura: un accorpamento mancato lascia due righe — com'era
+prima —, uno sbagliato fonde due fondi diversi.
+
+### Rappresentante
+
+`dedupe()` tiene **una riga per gruppo**, scelta in quest'ordine: **storico reale** → **EUR**
+→ **accumulazione** → **più datapoint** → ISIN (per rendere la scelta deterministica). La
+riga tenuta si porta dietro tutto, **categoria Morningstar compresa**: quando i pezzi cadono
+in categorie diverse vince quella del rappresentante.
+
+⚠️ L'EUR non è una preferenza estetica: i rendimenti Morningstar arrivano **nella valuta
+della quota**, non convertiti. `Pictet-Short-Term Money Market USD R` segna +7,2% a 1 anno e
+la gemella `EUR R` +1,8%. Tenere la classe EUR è ciò che rende confrontabili le righe.
+
+### Numeri e idempotenza
+
+Sullo snapshot del 27/07/2026: **6.162 classi → 3.833 fondi** (−37,8%). Le **mediane di
+categoria si calcolano dopo** il dedup e si spostano di oltre 0,05 punti in **117 categorie
+su 203**. `nc` (campo 15) = numero di classi raggruppate, e si **somma**: rilanciando il
+dedup sul risultato non cambiano né il numero di fondi né il badge (verificato su tre
+passate, `tools/test_dedup.js`). `meta.nClassi` porta il conteggio pre-dedup.
+
+### Residuo noto
+
+Per una manciata di fondi la valuta **è** il portafoglio, non la classe: i monetari a breve
+termine (`Pictet-Short-Term Money Market EUR / USD / CHF / JPY`, `LO Funds Short-Term Money
+Market`) e i comparti scritti con la valuta fra parentesi (`GAM Star Credit Opps (EUR)` vs
+`(USD)`, `BNY Mellon Glbl Rl Ret (EUR)` vs `(USD)`). La regola li unisce, tenendo la versione
+EUR. Sono ~6 gruppi su 3.833. Non è stata aggiunta un'eccezione perché il segnale che li
+distinguerebbe — la valuta scritta fra parentesi — è lo stesso che in T. Rowe Price indica
+invece la valuta della *classe* (`T. Rowe Price EM Eq A (EUR)`): l'eccezione farebbe più
+danni di quanti ne ripara.
 
 ---
 
@@ -243,8 +296,11 @@ legge il vecchio 17 e lo riscrive in 22.
 `DATA.cats`, **oggetti** (nel build congelato erano solo nomi): `nome, macro, n, m1, m3, m6,
 r1, r3, trend, mom121, accel, sd, ocMed, starMed, ampiezza, disp, score`.
 
-Più `catNames`, `macroOrder`, `series`, `meta{date, dataChiusura, source, nTot, nData,
-nSeries, nCat, nCatSottoSoglia, nNoOc, minN, prevDate, schema}`.
+Più `catNames`, `macroOrder`, `series`, `meta{date, dataChiusura, source, nTot, nClassi,
+nData, nSeries, nCat, nCatSottoSoglia, nNoOc, minN, prevDate, schema}`.
+
+`nTot` è il numero di **fondi dopo la deduplica** (§7), `nClassi` quello delle classi in
+ingresso. Il campo 15 `nc` è il numero di classi raggruppate in quella riga.
 
 ### Macro (10)
 
@@ -296,22 +352,46 @@ cumulato % con base 0.
 
 ---
 
-## 12. ⚠️ Timeout della funzione serverless
+## 12. Timeout della funzione serverless — chiuso il 25/08/2026
 
 Osservato il 25/08/2026: la prima chiamata a `/api/data` dopo un deploy è andata in **504
-FUNCTION_INVOCATION_TIMEOUT** (limite 60 s in `vercel.json`); la seconda ha risposto in una
-decina di secondi. Probabile partenza a freddo con le sei pagine da 10.000 righe.
+FUNCTION_INVOCATION_TIMEOUT**; la seconda ha risposto in una decina di secondi. Il fallback
+non copriva questo caso: scattava sull'errore di Morningstar, non sul timeout della funzione,
+che uccide il processo prima — nessuno resta a eseguire il `catch`.
 
-**Il fallback non copre questo caso**: scatta su errore di Morningstar, non su timeout della
-funzione, che uccide il processo prima. Finché il sito è congelato non si vede; dopo il
-ricablaggio un utente vedrebbe la pagina vuota.
+**Fix**: il refresh si dà una **scadenza propria più corta del limite di piattaforma**
+(`BUDGET_MS`, 40 s di default, regolabile con la variabile d'ambiente `OICR_BUDGET_MS` senza
+toccare il codice), mentre `vercel.json` resta a `maxDuration: 60`. Quando la sfora, lancia un
+errore **normale**, e da lì in poi risponde il solito percorso di fallback su
+`data/snapshot.json`. Il 504 non è più raggiungibile: la funzione si ferma sempre 20 s prima
+che ci arrivi.
+
+Due livelli, perché a freddo il costo non è solo di rete:
+
+- ogni pagina dello screener parte con un `AbortController` armato su **quanto resta** del
+  budget: una singola richiesta appesa non si mangia più tutto il tempo della funzione;
+- l'intero refresh — fetch, parse, calcolo — corre contro la stessa scadenza
+  (`conScadenza()`).
+
+La risposta di fallback esce con `Cache-Control: s-maxage=900` (la richiesta successiva
+ritenta il refresh) e l'intestazione `X-OICR-Source: morningstar | snapshot` dice da dove
+arrivano i dati senza doverli guardare.
+
+`tools/test_timeout.js` copre i tre casi: screener appeso, screener lento ma dentro il
+budget, screener in errore HTTP. Con budget a 5 s la risposta al primo caso esce in ~4,2 s,
+HTTP 200, dallo snapshot.
+
+> Se il piano Vercel del progetto ha Fluid Compute, `maxDuration` si può alzare fino a 300 s;
+> non serve al fix, ma darebbe respiro se un giorno lo screener rallentasse davvero. Alzarlo
+> oltre il tetto del piano fa **fallire il deploy**, quindi va verificato prima sul cruscotto.
 
 ---
 
 ## 13. Prossimi passi, in ordine
 
-1. **Sciogliere il nodo della deduplica** (§7) e **il timeout** (§12). Sono i due prerequisiti
-   del ricablaggio.
+1. ~~Deduplica (§7) e timeout (§12)~~ — **fatti il 25/08/2026**, erano i due prerequisiti del
+   ricablaggio. Test: `node tools/test_dedup.js`, `node tools/test_timeout.js`; audit dei
+   raggruppamenti: `node tools/audit_dedup.js`.
 2. **Dichiarare la staticità delle serie** (§11), sul modello di `SERIE_FINE` di ETF.
 3. **Ricablare `index.html`** su `/api/data`, riscrivere `app.js` per lo schema 2 e i campi di
    categoria, alzare il cache-bust. Poi eliminare `index_6.html`.

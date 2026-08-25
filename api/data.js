@@ -118,12 +118,39 @@ function loadJSON(rel) {
 const PAGE_SIZE = 10000;
 const MAX_PAGES = 10;
 
-async function fetchScreener() {
+/* Budget di tempo del refresh (METODOLOGIA.md §12).
+   La funzione ha `maxDuration` secondi in vercel.json: se il refresh li sfora,
+   Vercel uccide il processo e l'utente vede un 504 con la pagina vuota — il
+   fallback su snapshot NON scatta, perche' non c'e' piu' nessuno a eseguirlo.
+   Qui il refresh si da' una scadenza PROPRIA, piu' corta del limite di
+   piattaforma: quando la sfora lancia un errore normale, e da li' in poi e' il
+   solito percorso di fallback a rispondere. Il 504 non e' piu' raggiungibile.
+   Si regola senza toccare il codice con la variabile d'ambiente OICR_BUDGET_MS. */
+const BUDGET_MS = Math.max(5000, Number(process.env.OICR_BUDGET_MS) || 40000);
+
+const restante = t0 => BUDGET_MS - (Date.now() - t0);
+
+async function fetchScreener(t0) {
   const rows = [];
   let total = 0;
   for (let page = 1; page <= MAX_PAGES; page++) {
     const url = `${API}?page=${page}&pageSize=${PAGE_SIZE}&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
-    const res = await fetch(url, { headers: HEADERS });
+    // ogni pagina non puo' durare piu' di quanto resta del budget: senza questo
+    // una singola richiesta appesa si mangerebbe tutto il tempo della funzione
+    const disponibile = restante(t0);
+    if (disponibile <= 2000) throw new Error('Budget scaduto dopo ' + rows.length + ' righe');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), disponibile - 1000);
+    let res;
+    try {
+      res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
+    } catch (e) {
+      throw new Error(e && e.name === 'AbortError'
+        ? 'Timeout Morningstar (budget ' + BUDGET_MS + 'ms)'
+        : 'Morningstar irraggiungibile: ' + String(e && e.message || e));
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error('Morningstar HTTP ' + res.status);
     const j = await res.json();
     const batch = j.rows || j.securities || [];
@@ -139,22 +166,225 @@ async function fetchScreener() {
   return rows;
 }
 
-// normalizza il nome per raggruppare le classi di quota dello stesso fondo
-function baseName(name) {
-  return (name || '')
-    .toUpperCase()
-    .replace(/\b(CLASS(E|IC)?|CL|R\/?[AD]?|RE\/?[AD]?|H-?(EUR|USD|GBP|CHF)|EUR|USD|GBP|CHF|JPY|ACC(UMULAT\w*)?|DIS(T(RIBUT\w*)?)?|INC|CAP(ITALIS\w*)?|HEDGED|HDG|[A-Z]\d?|\d+)\b/g, ' ')
-    .replace(/[^A-Z]+/g, ' ')
-    .trim();
+/* ====================================================================== *
+ *  DEDUPLICA PER CLASSE DI QUOTA  (METODOLOGIA.md §7)
+ *
+ *  Regola confermata il 25/08/2026: "stesso fondo" = stesso portafoglio a
+ *  meno di VALUTA della quota, CEDOLA (Acc/Inc/Dis/ANN/Cap) e CLASSE DI
+ *  COMMISSIONE (A/E/R/Rd/L/I...). La COPERTURA DEL CAMBIO resta una cosa a
+ *  se': profilo di rischio diverso, e Morningstar stessa spesso classifica
+ *  la versione hedged in una categoria diversa.
+ *
+ *  Il nome viene sfrondato SOLO dalla coda, fermandosi al primo token non
+ *  riconosciuto: il nucleo del nome sta all'inizio e non viene mai intaccato.
+ *  La precisione conta piu' della copertura — un accorpamento mancato lascia
+ *  due righe (com'e' oggi), uno sbagliato fonde due fondi diversi.
+ * ====================================================================== */
+
+const CURR = new Set(['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'SEK', 'NOK', 'DKK', 'AUD', 'CAD',
+  'SGD', 'HKD', 'CNH', 'CNY', 'RMB', 'PLN', 'CZK', 'HUF', 'ZAR', 'NZD', 'MXN', 'BRL', 'TRY',
+  'ILS', 'KRW', 'RUB', 'THB', 'TWD', 'INR', 'IDR']);
+
+const HEDGE_WORD = new Set(['H', 'HDG', 'HGD', 'HG', 'HEDGED', 'HEDGE', 'HEDG', 'HEDGD']);
+const UNHEDGE_WORD = new Set(['UNHEDGED', 'UH']);
+
+// Cedola / capitalizzazione: SOLO abbreviazioni.
+// "INCOME", "CAPITAL", "GROWTH" non stanno qui, sono parole di nome fondo.
+const DIST = new Set(['ACC', 'ACCUM', 'ACCUMULATION', 'ACCUMULATING', 'INC', 'DIS', 'DIST',
+  'DISTR', 'DISTRIB', 'DISTRIBUTION', 'DISTRIBUTING', 'CAP', 'CAPITALISATION',
+  'CAPITALIZATION', 'ANN', 'YDIS', 'QDIS', 'MDIS', 'SDIS', 'ADIS', 'YINC', 'QINC', 'MINC',
+  'MTH', 'MTHLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']);
+
+const NOISE = new Set(['CLASS', 'CLASSE', 'CL', 'SHARES', 'SHARE', 'SHS', 'UNITS', 'UNIT',
+  'RETAIL', 'INSTITUTIONAL', 'INST', 'INSTL', 'CLEAN', 'FOUNDER', 'SEED']);
+
+/* Sigle di 2 lettere che NON sono classi di commissione ma pezzi di nome:
+   paesi, aree, temi. Meglio perdere un accorpamento che unire due fondi diversi. */
+const NON_CLASSE = new Set(['US', 'UK', 'EM', 'EU', 'IT', 'JP', 'CN', 'IN', 'ID', 'IE',
+  'DE', 'FR', 'ES', 'CH', 'SE', 'NO', 'DK', 'FI', 'BE', 'PT', 'GR', 'PL', 'TR', 'ZA',
+  'BR', 'MX', 'KR', 'TW', 'HK', 'SG', 'NZ', 'CA', 'RU', 'HY', 'IG', 'IL', 'GL',
+  'AI', 'GO', 'AG', 'ETF', 'SRI', 'ESG']);
+
+// Serie dello stesso comparto: "Core Target Alloc 25 (II)/(III)/(IV)" hanno lo
+// stesso portafoglio e rendimenti a un decimo l'uno dall'altro.
+const ROMANI = new Set(['II', 'III', 'IV', 'VI', 'VII', 'IX', 'XI', 'XII']);
+
+function isHedgeTok(t) {
+  if (HEDGE_WORD.has(t)) return true;
+  if (/^H\d{1,2}$/.test(t)) return true;                                    // H1, H2
+  if (/^H(EUR|USD|GBP|CHF|JPY|SEK|NOK|DKK|AUD|CAD|SGD|HKD|CNH|PLN|CZK|HUF)\d?$/.test(t)) return true;
+  if (/^(EUR|USD|GBP|CHF|JPY|SEK|NOK|DKK|AUD|CAD|SGD|HKD|CNH|PLN|CZK|HUF)H(DG|GD)?\d?$/.test(t)) return true;
+  return false;
 }
 
-/* NOTA — dedup per classe di quota: NON implementata qui.
-   Il sito congelato mostra 4.399 fondi partendo da 6.138 classi, ma la regola che
-   li collassa non e' ricostruibile dal solo risultato gia' deduplicato: le classi
-   A/S e R/Rd, e le varianti di copertura HEUR/HCHF, li' restano separate. Questo
-   file mantiene il comportamento odierno di api/data.js — una riga per ISIN — e
-   usa `nc` solo come badge "N classi". La regola va decisa prima di ricablare il
-   sito su /api/data, perche' cambia i conteggi e sposta le mediane di categoria. */
+/* Sigla di classe di commissione. Insieme volutamente stretto:
+     1 lettera (+cifra)   A, B, E, R, I, L, A1, E2, C2 ...
+     2 lettere (+cifra)   AC, AD, LC, LD, NC, ND, PA, RA, AH, AX ...
+                          escluse le sigle geografiche/tematiche (US, EM, HY ...)
+     maiuscole/minuscole  Bd, Bh, Bgd, Bdh, Nhd — ma solo con le minuscole
+                          tipiche delle classi: cosi' "Bal", "Sty", "Alp",
+                          "Yld", "Eq" restano parole di nome
+     3 maiuscole          solo le coperte (AHX, CHR) e i numerali di serie:
+                          LUX, MSI, CIB, ISF restano nel nome. */
+function isClasse(tokOrig) {
+  const m = /^([A-Za-z]{1,3})(\d{1,2})?$/.exec(tokOrig);
+  if (!m) return false;
+  const lettere = m[1];
+  const up = lettere.toUpperCase();
+  if (NON_CLASSE.has(up) || CURR.has(up) || DIST.has(up) || NOISE.has(up)) return false;
+  if (/^[A-Z][a-z]+$/.test(lettere)) return /^[dhgcx]+$/.test(lettere.slice(1));
+  if (lettere.length <= 2) return true;
+  if (ROMANI.has(up)) return true;
+  return up.includes('H');
+}
+
+// una classe che porta la H e' coperta dal cambio: AH, Bh, Bdh, AHX, CHR, Nh ...
+const classeCoperta = t => /H/i.test(t.replace(/\d/g, ''));
+
+function pieceKind(tokOrig) {
+  const t = tokOrig.toUpperCase();
+  if (!t) return null;
+  if (CURR.has(t)) return 'valuta';
+  if (isHedgeTok(t)) return 'hedge';
+  if (UNHEDGE_WORD.has(t)) return 'noise';
+  if (DIST.has(t)) return 'cedola';
+  if (NOISE.has(t)) return 'noise';
+  if (isClasse(tokOrig)) return 'classe';
+  return null;   // numeri puri compresi: "Advisory 3", "Fondo Obiettivo 2030"
+}
+
+/* Un token puo' essere composto col trattino ("A-Acc-EUR", "H2-EUR", "Bdh-EUR"):
+   lo si accetta solo se OGNI pezzo e' riconoscibile, altrimenti "Ex-Japan" e
+   "Multi-Asset" finirebbero smontati. */
+function tokenPieces(tok) {
+  const out = [];
+  for (const p of tok.split('-')) {
+    if (!p) continue;
+    const k = pieceKind(p);
+    if (!k) return null;
+    out.push([p, k]);
+  }
+  return out.length ? out : null;
+}
+
+function tokenizza(name) {
+  return String(name || '')
+    .replace(/€|â€š?Â?¬/g, ' EUR ')
+    .replace(/£|Â£/g, ' GBP ')
+    .replace(/[()\[\]{},;:/|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+}
+
+/* Separa "nome del fondo" e attributi di classe. Due vincoli tengono a bada i
+   falsi accorpamenti:
+     - al massimo UNA sigla di classe per nome. Senza questo limite
+       "Schroder ISF Global Eq Alp A" perderebbe anche "Alp" e finirebbe addosso
+       a "... Eq Yld A": due fondi diversi.
+     - nessuna cedola DOPO la sigla di classe. Nei nomi Morningstar l'ordine e'
+       [nome] [classe] [cedola] [valuta] [copertura], quindi un "Inc" che compare
+       a sinistra della classe e' l'"Income" del nome ("Pan European Eq Inc"). */
+function splitClasse(name) {
+  const tok = tokenizza(name);
+  let hedged = false, valuta = null, acc = false, dis = false, classeVista = false;
+  let i = tok.length;
+
+  while (i > 0) {
+    const pezzi = tokenPieces(tok[i - 1]);
+    if (!pezzi) break;
+    const kinds = pezzi.map(p => p[1]);
+    const nClasse = kinds.filter(k => k === 'classe').length;
+    if (nClasse > 1) break;
+    if (classeVista && (nClasse > 0 || kinds.includes('cedola'))) break;
+
+    // guardia: non erodere il nome sotto 2 token / 6 caratteri
+    const resto = tok.slice(0, i - 1);
+    if (resto.length < 2 || resto.join(' ').length < 6) break;
+
+    for (let j = pezzi.length - 1; j >= 0; j--) {
+      const p = pezzi[j][0], k = pezzi[j][1], up = p.toUpperCase();
+      if (k === 'hedge') hedged = true;
+      else if (k === 'valuta') { if (!valuta) valuta = up; }
+      else if (k === 'cedola') {
+        if (/^ACC/.test(up) || /^CAP/.test(up)) acc = true; else dis = true;
+      } else if (k === 'classe') {
+        classeVista = true;
+        if (classeCoperta(p)) hedged = true;
+      }
+    }
+    i--;
+  }
+
+  return { base: tok.slice(0, i).join(' ').toUpperCase(), hedged, valuta, acc, dis };
+}
+
+/* Chiave di gruppo: nome base + copertura del cambio + domicilio (prefisso ISIN).
+   Il domicilio e' una cintura di sicurezza: le classi di uno stesso comparto lo
+   condividono sempre, due fondi omonimi di case diverse quasi mai. */
+function groupKey(isin, name) {
+  const s = splitClasse(name);
+  return String(isin || '').slice(0, 2) + '|' + (s.hedged ? 'H' : '-') + '|' + s.base;
+}
+
+// compat: il badge "N classi" si appoggiava a questa; ora il conteggio arriva
+// dal dedup, ma la funzione resta esportata per i test.
+function baseName(name) { return splitClasse(name).base; }
+
+// quanti datapoint valorizzati ha la riga — ultimo criterio di scelta
+const NDATI = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16];
+function quantiDati(f) {
+  let n = 0;
+  for (const i of NDATI) if (f[i] !== null && f[i] !== undefined) n++;
+  return n;
+}
+
+/* Unisce le classi dello stesso fondo e tiene UNA riga per gruppo.
+   Rappresentante, in ordine: storico reale > EUR > accumulazione > piu' dati >
+   ISIN (per rendere la scelta deterministica). La riga tenuta si porta dietro
+   tutto, categoria Morningstar compresa: quando i pezzi cadono in categorie
+   diverse vince quella del rappresentante.
+   `nc` (campo 15) = numero di classi raggruppate; si SOMMA, cosi' rilanciare il
+   dedup sul risultato non cambia ne' il numero di fondi ne' il badge. */
+function dedupe(funds, serieSet) {
+  const conSerie = serieSet || new Set();
+  const gruppi = new Map();
+  for (const f of funds) {
+    const k = groupKey(f[0], f[1]);
+    if (!gruppi.has(k)) gruppi.set(k, []);
+    gruppi.get(k).push(f);
+  }
+
+  const out = [];
+  for (const [, membri] of gruppi) {
+    const info = membri.map(f => {
+      const s = splitClasse(f[1]);
+      return {
+        f,
+        serie: conSerie.has(f[0]) ? 1 : 0,
+        eur: s.valuta === 'EUR' ? 2 : (s.valuta === null ? 1 : 0),
+        acc: s.acc ? 1 : 0,
+        dati: quantiDati(f)
+      };
+    });
+    info.sort((a, b) =>
+      b.serie - a.serie ||
+      b.eur - a.eur ||
+      b.acc - a.acc ||
+      b.dati - a.dati ||
+      String(a.f[0]).localeCompare(String(b.f[0]))
+    );
+    const rep = info[0].f;
+    let nc = 0;
+    for (const m of membri) nc += (typeof m[15] === 'number' && m[15] > 0) ? m[15] : 1;
+    rep[15] = nc;
+    out.push(rep);
+  }
+
+  out.sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'it'));
+  return out;
+}
 
 /* Aggregati di categoria, metriche relative sul fondo e score di allocazione.
    Estratta da build() perche' serve anche a rigenerare le metriche sullo snapshot
@@ -332,13 +562,11 @@ function build(rows, isinSet, series) {
     ]);
   }
 
-  const funds = classi;
-  // nc = numero di classi Fineco monitorate dello stesso fondo (solo badge)
-  const groups = {};
-  for (const f of funds) { const k = baseName(f[1]); groups[k] = (groups[k] || 0) + 1; }
-  for (const f of funds) f[15] = groups[baseName(f[1])] || 1;
-
-  funds.sort((a, b) => a[1].localeCompare(b[1], 'it'));
+  // Dedup PRIMA degli aggregati: le mediane di categoria vanno calcolate sui
+  // fondi, non sulle classi, altrimenti una casa con molte classi in gamma pesa
+  // di piu' solo per questo.
+  const nClassi = classi.length;
+  const funds = dedupe(classi, new Set(Object.keys(series)));
 
   const cats = computeCats(funds);
 
@@ -359,7 +587,7 @@ function build(rows, isinSet, series) {
     meta: {
       date, dataChiusura: modaData,
       source: 'Morningstar Italia · via Vercel',
-      nTot: funds.length, nData, nSeries,
+      nTot: funds.length, nClassi, nData, nSeries,
       nCat: cats.length,
       nCatSottoSoglia: cats.filter(c => c.n < MIN_N).length,
       nNoOc: funds.filter(f => f[13] === null).length,
@@ -374,18 +602,20 @@ function build(rows, isinSet, series) {
    formato nuovo: rimappa le macro, deduplica le classi e ricalcola tutto.
    Meglio un fallback ricalcolato che un fallback che mostra numeri di un altro
    impianto. */
-function upgradeSnapshot(snap) {
+function upgradeSnapshot(snap, serieSet) {
   if (!snap || !snap.funds) return snap;
   if (snap.meta && snap.meta.schema >= 2) return snap;
-  const funds = snap.funds.map(f => {
+  const classi = snap.funds.map(f => {
     const g = f.slice(0, 17);
     while (g.length < 17) g.push(null);
     g[3] = macroOf(g[2]);
+    g[15] = 1;               // il vecchio nc veniva da un'altra regola: si riparte da 1
     g[17] = null; g[18] = null; g[19] = null; g[20] = null; g[21] = null;
     g[22] = f[17] || f[0];   // nello schema 1 il SecId stava in 17
     return g;
   });
-  funds.sort((a, b) => a[1].localeCompare(b[1], 'it'));
+  const nClassi = classi.length;
+  const funds = dedupe(classi, serieSet);
   snap.funds = funds;
   snap.cats = computeCats(funds);
   snap.catNames = snap.cats.map(c => c.nome);
@@ -393,6 +623,7 @@ function upgradeSnapshot(snap) {
   snap.meta = snap.meta || {};
   snap.meta.schema = 2;
   snap.meta.nTot = funds.length;
+  snap.meta.nClassi = nClassi;
   snap.meta.nData = funds.filter(f => f[8] !== null || f[4] !== null).length;
   snap.meta.nCat = snap.cats.length;
   snap.meta.nCatSottoSoglia = snap.cats.filter(c => c.n < MIN_N).length;
@@ -403,28 +634,51 @@ function upgradeSnapshot(snap) {
   return snap;
 }
 
+/* Corre `p` contro la scadenza del budget. Serve anche fuori dalla fetch: a
+   freddo il costo sta pure nel parse dei JSON e nel calcolo, non solo in rete. */
+function conScadenza(p, t0) {
+  let timer;
+  const scadenza = new Promise((_, rej) => {
+    timer = setTimeout(
+      () => rej(new Error('Refresh oltre il budget di ' + BUDGET_MS + 'ms (avvio a freddo)')),
+      Math.max(1000, restante(t0))
+    );
+    if (timer.unref) timer.unref();
+  });
+  return Promise.race([p, scadenza]).finally(() => clearTimeout(timer));
+}
+
 module.exports = async (req, res) => {
+  const t0 = Date.now();
   res.setHeader('Access-Control-Allow-Origin', '*');
   // fuori dal try: servono anche allo snapshot in caso di fallback
   let series = {};
   try { series = loadJSON('series.json'); } catch (e) {}
+  const serieSet = new Set(Object.keys(series));
   try {
-    const isinSet = new Set(loadJSON('isins.json'));
-    const rows = await fetchScreener();
-    const data = build(rows, isinSet, series);
+    const data = await conScadenza((async () => {
+      const isinSet = new Set(loadJSON('isins.json'));
+      const rows = await fetchScreener(t0);
+      return build(rows, isinSet, series);
+    })(), t0);
     res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
+    res.setHeader('X-OICR-Source', 'morningstar');
     res.status(200).json(data);
   } catch (err) {
-    // Fallback: snapshot statico incluso nel repo, riportato allo schema 2
+    // Fallback: snapshot statico incluso nel repo, riportato allo schema 2.
+    // Ci arriva anche il timeout, non piu' solo l'errore di Morningstar.
     try {
-      const snap = upgradeSnapshot(loadJSON('snapshot.json'));
+      const snap = upgradeSnapshot(loadJSON('snapshot.json'), serieSet);
       const inUniverse = new Set(snap.funds.map(f => f[0]));
       const ser = {};
       for (const [k, v] of Object.entries(series)) if (inUniverse.has(k)) ser[k] = v;
       snap.series = ser;
       snap.meta.nSeries = Object.keys(ser).length;
       snap.meta.source += ' · snapshot (refresh fallito: ' + String(err.message || err).slice(0, 80) + ')';
+      // cache breve: la prossima richiesta ritenta il refresh, ma intanto
+      // nessuno resta davanti a una pagina vuota
       res.setHeader('Cache-Control', 's-maxage=900');
+      res.setHeader('X-OICR-Source', 'snapshot');
       res.status(200).json(snap);
     } catch (e2) {
       res.status(500).json({ error: String(err.message || err) });
@@ -438,6 +692,10 @@ module.exports.computeCats = computeCats;
 module.exports.upgradeSnapshot = upgradeSnapshot;
 module.exports.macroOf = macroOf;
 module.exports.baseName = baseName;
+module.exports.splitClasse = splitClasse;
+module.exports.groupKey = groupKey;
+module.exports.isClasse = isClasse;
+module.exports.dedupe = dedupe;
 module.exports.statoOf = statoOf;
 module.exports.mom121 = mom121;
 module.exports.accelGrezza = accelGrezza;
