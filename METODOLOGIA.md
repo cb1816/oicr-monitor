@@ -71,7 +71,15 @@ testo che si aspetta. Tutto il resto — CSS, testata, pannello Info, pulsante p
 meta PWA — passa attraverso intatto. È il modo di non perdere pezzi per strada: il pulsante
 ponte è già andato perso una volta, in una riscrittura.
 
-Per rifare la pagina da zero: `git checkout index.html && node tools/build_index.js`.
+Per rifare la pagina da zero serve la versione **prima** del ricablaggio, perché è lì che sta
+il `const DATA={…}` che lo script cerca:
+
+```
+git show 94048ee:index.html > index.html && node tools/build_index.js
+```
+
+Sul `git checkout index.html` e basta lo script si ferma con *«non trovo la riga `const
+DATA={...}`»*: giusto così, sta dicendo che la pagina è già ricablata.
 
 ### Le prove
 
@@ -80,6 +88,7 @@ Per rifare la pagina da zero: `git checkout index.html && node tools/build_index
 | `node tools/test_dedup.js` | regola di deduplica, idempotenza, rappresentante, effetto sulle mediane |
 | `node tools/test_timeout.js` | i tre esiti di `/api/data`: appeso, lento, in errore |
 | `node tools/test_pagina.js` | la pagina in Chromium: schede, filtri, scheda fondo, pulsante ponte, errori JS |
+| `node tools/test_pagina.js --date` | data della chiamata ≠ chiusura dei prezzi: in testata deve comparire la seconda |
 | `node tools/test_pagina.js --lento` | `/api/data` a 6 s: la copia locale deve reggere l'attesa |
 | `node tools/test_pagina.js --rotto` | `/api/data` in errore: la testata deve dire *"copia locale"* |
 | `node tools/test_pagina.js --rotto --nulla` | entrambe le sorgenti giù: schermata d'errore con Riprova |
@@ -87,6 +96,17 @@ Per rifare la pagina da zero: `git checkout index.html && node tools/build_index
 
 I primi due e l'audit girano con il solo Node. Le prove in browser vogliono Chromium:
 `npm i playwright && npx playwright install chromium`, una volta sola.
+
+### La data in testata
+
+`meta.date` è il momento in cui è stata fatta la chiamata; **`meta.dataChiusura` è la moda di
+`closePriceDate`, cioè la data vera dei prezzi.** In testata va la seconda. Finché i dati erano
+incorporati nella pagina le due coincidevano quasi sempre — la build si faceva il giorno dopo
+la rilevazione — e la differenza non si vedeva; a dati vivi l'app diceva *"dati al 25/08"*
+mostrando prezzi del 24. Segnalato da Corrado guardando l'app, corretto il 25/08/2026.
+
+Il conteggio in testata è **`nTot`**, non `nData`: i pochi fondi senza nemmeno un rendimento
+(12 su 3.818) restano nelle liste e nei filtri, quindi contarli è più onesto che scontarli.
 
 ### Regola operativa — cache
 

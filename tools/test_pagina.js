@@ -14,6 +14,13 @@ const root = path.join(__dirname, '..');
 const LENTO = process.argv.includes('--lento');
 const ROTTO = process.argv.includes('--rotto');
 const NULLA = process.argv.includes('--nulla');   // niente API e niente copia locale
+/* --date serve una /api/data finta in cui la data della CHIAMATA (25/08) e la
+   chiusura dei PREZZI (24/08) sono diverse. E' il caso che si e' visto in
+   produzione: la testata diceva "dati al 25/08" mostrando prezzi del 24. Senza
+   rete l'handler vero ricade sullo snapshot, che dataChiusura non ce l'ha, e il
+   caso non verrebbe mai esercitato. */
+const DATE = process.argv.includes('--date');
+const FINTA_DATE = { date: '25/08/2026', dataChiusura: '2026-08-24' };
 const SHOT = process.argv.includes('--shot');
 const apiHandler = require('../api/data.js');
 
@@ -25,6 +32,14 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/data') {
     if (ROTTO) { res.writeHead(500); return res.end('ko'); }
     if (LENTO) await new Promise(r => setTimeout(r, 6000));
+    if (DATE) {
+      const d = JSON.parse(fs.readFileSync(path.join(root, 'data', 'bootstrap.json'), 'utf8'));
+      d.meta.date = FINTA_DATE.date;
+      d.meta.dataChiusura = FINTA_DATE.dataChiusura;
+      d.meta.source = 'Morningstar Italia · via Vercel';
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(d));
+    }
     const finto = {
       _h: {}, setHeader(k, v) { this._h[k] = v; }, status(c) { this._c = c; return this; },
       json(o) { res.writeHead(this._c || 200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); }
@@ -99,6 +114,37 @@ const ok = (c, m) => { console.log((c ? '  ok   ' : '  KO   ') + m); if (!c) ko+
     console.log('   testata: "' + t + '"');
     ok(/copia locale/.test(t), 'la testata dichiara che stai guardando la copia locale');
     ok(!/aggiorno/.test(t), 'non resta "aggiorno…" a girare a vuoto');
+  }
+
+  // 2b. la data in testata deve essere la CHIUSURA dei prezzi, non il momento
+  //     della chiamata: l'app diceva "dati al 25/08" mostrando prezzi del 24
+  if (!ROTTO) {
+    const t = (await page.textContent('#cnt')).replace(/\s+/g, ' ').trim();
+    const meta = await page.evaluate(() => ({
+      chiusura: (window.__DATA_META || {}).dataChiusura || null,
+      date: (window.__DATA_META || {}).date || null,
+      nTot: (window.__DATA_META || {}).nTot || null,
+      nData: (window.__DATA_META || {}).nData || null
+    }));
+    console.log('\n2b) testata');
+    console.log('   "' + t + '"');
+    console.log('   meta: dataChiusura=' + meta.chiusura + ' · date=' + meta.date +
+      ' · nTot=' + meta.nTot + ' · nData=' + meta.nData);
+    if (meta.chiusura) {
+      const p = meta.chiusura.split('-');
+      const attesa = p[2] + '/' + p[1] + '/' + p[0];
+      ok(t.includes(attesa), 'mostra la data di chiusura dei prezzi (' + attesa + ')');
+      if (meta.date && meta.date !== attesa) {
+        ok(!t.includes(meta.date), 'NON mostra la data della chiamata (' + meta.date + ')');
+      }
+    }
+    // il separatore delle migliaia dipende dall'ICU: si confrontano le cifre
+    const cifre = x => String(x).replace(/\D/g, '');
+    if (meta.nTot) ok(cifre(t).startsWith(cifre(meta.nTot)), 'conta tutti i fondi (nTot ' + meta.nTot + ')');
+    if (DATE) {
+      ok(t.includes('24/08/2026'), 'mostra la chiusura dei prezzi 24/08/2026');
+      ok(!t.includes('25/08/2026'), 'NON mostra 25/08/2026, che e\' solo il momento della chiamata');
+    }
   }
 
   // 3. nessuna metrica duplicata dopo il doppio avvio

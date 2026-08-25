@@ -60,11 +60,24 @@ sostituisci(
 //    dati freschi. Senza, l'aggiornamento in corso sarebbe invisibile.
 sostituisci(
   "document.getElementById('cnt').innerHTML=META.nData.toLocaleString('it')+' fondi<br><b class=\"asof\">dati al '+META.date+'</b>';",
-  `function scriviTestata(stato){
-  const n=META.nData.toLocaleString('it');
+  `/* META.date e' il momento in cui e' stata fatta la chiamata, NON la chiusura
+   dei prezzi: l'app diceva "dati al 25/08" mostrando prezzi del 24. Finche' i
+   dati erano incorporati nella pagina le due date coincidevano quasi sempre,
+   perche' la build si faceva il giorno dopo la rilevazione; a dati vivi no.
+   dataChiusura invece e' la moda di closePriceDate: la data vera dei prezzi. */
+function dataDeiPrezzi(){
+  const c=META.dataChiusura;
+  if(c&&/^\\d{4}-\\d{2}-\\d{2}$/.test(c)){const p=c.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+  return META.date||'—';
+}
+function scriviTestata(stato){
+  // nTot, non nData: e' il numero di fondi nel monitor. I pochi senza nemmeno un
+  // rendimento (12 su 3.818) restano nelle liste e nei filtri, quindi contarli e'
+  // piu' onesto che scontarli dalla testata.
+  const n=(META.nTot||META.nData||0).toLocaleString('it');
   const nota=stato==='copia'?' <span class="agg">· aggiorno…</span>'
     :stato==='copia-ferma'?' <span class="agg">· copia locale</span>':'';
-  document.getElementById('cnt').innerHTML=n+' fondi'+nota+'<br><b class="asof">dati al '+META.date+'</b>';
+  document.getElementById('cnt').innerHTML=n+' fondi'+nota+'<br><b class="asof">dati al '+dataDeiPrezzi()+'</b>';
 }`,
   'scrittura della testata'
 );
@@ -103,6 +116,7 @@ sostituisci(
   "buildMacroChips();buildCatSel();render();",
   `function boot(d,stato){
   DATA=d; F=d.funds||[]; CATS=d.cats||[]; MO=d.macroOrder||[]; META=d.meta||{}; SER=d.series||{};
+  window.__DATA_META=META;                  // serve solo a tools/test_pagina.js
   catCache={};
   aggiungiDeltaRango();
   scriviTestata(stato);
