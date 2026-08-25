@@ -178,6 +178,21 @@ const ok = (c, m) => { console.log((c ? '  ok   ' : '  KO   ') + m); if (!c) ko+
   ok(titolo.length > 3, 'il titolo del fondo c\'e\'');
   ok(badge.some(b => /class/i.test(b)), 'il badge delle classi c\'e\'');
   ok((await page.locator('#sheet svg').count()) > 0, 'il grafico c\'e\'');
+  // il grafico storico non deve dire "oggi" a destra: le serie sono statiche e
+  // si fermano a meta.serieFine (METODOLOGIA.md §11)
+  {
+    const leg = (await page.locator('#sheet .chleg').first().textContent()).replace(/\s+/g, ' ');
+    const fine = await page.evaluate(() => (window.__DATA_META || {}).serieFine || null);
+    const note = (await page.textContent('#sheet')).replace(/\s+/g, ' ');
+    console.log('   legenda: "' + leg + '"  ·  serieFine=' + fine);
+    if (fine && /storico Morningstar/.test(leg)) {
+      const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+      const atteso = mesi[+fine.split('-')[1] - 1] + ' ' + fine.split('-')[0];
+      ok(leg.includes(atteso), 'il grafico storico dichiara dove finisce (' + atteso + ')');
+      ok(!/oggi/.test(leg), 'e non dice "oggi", che non e\' vero');
+      ok(note.includes(atteso), 'anche la nota in fondo lo dice');
+    }
+  }
   if (!ROTTO) ok(link > 0, 'link alla scheda Morningstar');
   if (SHOT) await page.screenshot({ path: '/tmp/oicr-scheda.png' });
   await page.click('#sheet .closex');

@@ -440,16 +440,32 @@ rimappa le macro, ricalcola le 207 categorie e lo score. Provato sul file vero: 
 categorie con score. Quando capiterà di rigenerarlo, farlo con `git` da un container.
 
 **`data/series.json`** — **3.063 serie** mensili a 5 anni, formato `isin -> "0.0,6.7,…"`,
-cumulato % con base 0.
+cumulato % con base 0. Sono **61 punti**: base più 60 mesi.
 
-⚠️ **Due cose non tornano e vanno sistemate:**
+### Fino a quando arrivano — `SERIE_FINE = '2026-06-30'`
 
-1. Il file è **statico**, committato il 20/08/2026, e **la data dell'ultimo punto non è scritta
-   da nessuna parte**. Su ETF questo è stato risolto con una costante `SERIE_FINE` in
-   `api/data.js`, esposta come `meta.serieFine` e mostrata nell'app. Qui **non c'è ancora**:
-   l'app non dichiara fin dove arrivano le serie.
-2. Il file copre 3.063 ISIN, ma il sito congelato ne dichiara **4.388**. L'endpoint ne serve
-   3.052 su 6.138. La copertura reale è molto più bassa di quella annunciata.
+Il file **non porta le date**, e dal contenuto non c'è modo di ricavarle. Il valore è
+**dedotto, non indovinato**: `series.json` è stato committato il **24/07/2026**, quindi luglio
+non può esserci, e una serie mensile presa in quel momento chiude all'ultimo mese completo —
+giugno. Il controllo incrociato è coerente: i rendimenti ricavati dalle serie stanno 1,57
+punti sopra l'`r1` dello snapshot (prezzi al 24/07), lo scarto di una finestra spostata di un
+mese; a 3 e 5 anni annualizzati lo scarto scende a 0,49 e 0,20.
+
+La costante sta in `api/data.js`, esposta come **`meta.serieFine`**, e l'app la scrive dove si
+guarda il grafico: la legenda a destra dice *"giu 2026"* invece di *"oggi"*, e la nota in fondo
+alla scheda ripete *"grafico storico fino a giu 2026"*. Prima diceva "oggi" per dati di due
+mesi prima — lo stesso difetto della data in testata (§1), su un altro campo.
+
+⚠️ **`SERIE_FINE` va aggiornata a mano ogni volta che si rigenera `series.json`.** È l'unico
+pezzo dell'impianto che non si sa da solo: tutto il resto deriva dai dati.
+
+### Copertura reale
+
+Il file copre **3.063 ISIN**; dopo la deduplica ne restano **2.843** agganciati a un fondo
+sull'universo live (2.854 sulla fotografia di luglio). Il sito congelato ne dichiarava 4.388:
+la copertura vera è **più bassa di quella annunciata**, e circa un fondo su quattro mostra il
+grafico stimato dai rendimenti invece dello storico reale. I due casi si distinguono a occhio
+dalla legenda: *"storico Morningstar"* contro *"stima dai rendimenti"*.
 
 ---
 

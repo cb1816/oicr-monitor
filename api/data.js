@@ -33,6 +33,15 @@ const HEADERS = {
   'Origin': 'https://www.morningstar.it'
 };
 
+/* Fine delle serie storiche di data/series.json (METODOLOGIA.md §11).
+   Il file non porta le date: sono 61 punti mensili — base piu' 60 mesi — e non
+   c'e' modo di sapere dal contenuto a quando arrivano. Dedotta, non indovinata:
+   il file e' stato committato il 24/07/2026, quindi luglio non puo' esserci, e
+   una serie mensile presa in quel momento chiude all'ultimo mese completo.
+   Va aggiornata a mano ogni volta che si rigenera series.json — e' l'unico
+   pezzo dell'impianto che non si sa da solo. */
+const SERIE_FINE = '2026-06-30';
+
 // Soglia sotto la quale non si pubblica un numero relativo alla categoria.
 const MIN_N = 5;
 
@@ -605,7 +614,7 @@ function build(rows, isinSet, series) {
     meta: {
       date, dataChiusura: modaData,
       source: 'Morningstar Italia · via Vercel',
-      nTot: funds.length, nClassi, nData, nSeries,
+      nTot: funds.length, nClassi, nData, nSeries, serieFine: SERIE_FINE,
       nCat: cats.length,
       nCatSottoSoglia: cats.filter(c => c.n < MIN_N).length,
       nNoOc: funds.filter(f => f[13] === null).length,
@@ -642,6 +651,7 @@ function upgradeSnapshot(snap, serieSet) {
   snap.meta.schema = 2;
   snap.meta.nTot = funds.length;
   snap.meta.nClassi = nClassi;
+  snap.meta.serieFine = SERIE_FINE;
   snap.meta.nData = funds.filter(f => f[8] !== null || f[4] !== null).length;
   snap.meta.nCat = snap.cats.length;
   snap.meta.nCatSottoSoglia = snap.cats.filter(c => c.n < MIN_N).length;
@@ -726,3 +736,4 @@ module.exports.API = API;
 module.exports.HEADERS = HEADERS;
 module.exports.DATAPOINTS = DATAPOINTS;
 module.exports.PAGE_SIZE = PAGE_SIZE;
+module.exports.SERIE_FINE = SERIE_FINE;

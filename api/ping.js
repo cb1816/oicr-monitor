@@ -51,9 +51,13 @@ async function prova(page, pageSize, budgetMs) {
     const j = await res.json();
     const righe = j.rows || j.securities || [];
     const isin = r => r.isin || r.Isin || null;
+    // la data dei prezzi dal campione: basta a dire se i dati sono freschi,
+    // ed e' l'unica cosa che il controllo settimanale ha bisogno di sapere
+    const date = righe.map(r => r.closePriceDate).filter(Boolean).sort();
     return {
       ok: true, pagina: page, http: res.status, ms: Date.now() - t0,
       righe: righe.length, totale: j.total || null,
+      chiusura: date.length ? date[date.length - 1] : null,
       primo: righe.length ? isin(righe[0]) : null,
       ultimo: righe.length ? isin(righe[righe.length - 1]) : null,
       _righe: righe
@@ -139,11 +143,20 @@ module.exports = async (req, res) => {
         const perimetro = JSON.parse(
           fs.readFileSync(path.join(process.cwd(), 'data', 'isins.json'), 'utf8'));
         const set = new Set(perimetro);
+        /* Le serie servono davvero, non sono un ornamento: la scelta del
+           rappresentante mette lo storico reale al primo posto, e con
+           rappresentanti diversi vincono categorie diverse. Passando {} la sonda
+           contava 199 categorie dove /api/data ne conta 203 — due numeri veri
+           per due domande diverse, che pero' sembravano un errore. */
+        let serie = {};
+        try {
+          serie = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'series.json'), 'utf8'));
+        } catch (e) {}
         const trovati = new Set();
         for (const i of isinDistinti) if (set.has(i)) trovati.add(i);
 
         const tCalc = Date.now();
-        const dati = D.build(righe, set, {});
+        const dati = D.build(righe, set, serie);
         out.perimetroFineco = {
           isinNelRepo: perimetro.length,
           ritrovatiNelloScreener: trovati.size,
@@ -152,7 +165,9 @@ module.exports = async (req, res) => {
           fondiDopoDedup: dati.meta.nTot,
           conDati: dati.meta.nData,
           categorie: dati.meta.nCat,
+          serieStoriche: dati.meta.nSeries,
           dataChiusura: dati.meta.dataChiusura,
+          serieFinoA: dati.meta.serieFine,
           msCalcolo: Date.now() - tCalc
         };
       } catch (e) {

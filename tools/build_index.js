@@ -137,6 +137,41 @@ sostituisci(
   'nota del quartile nella scheda fondo'
 );
 
+/* 10. Il grafico a 5 anni scriveva "oggi" a destra anche quando la serie si
+       ferma a giugno: la stessa bugia della data in testata, su un altro campo.
+       Le serie sono statiche (METODOLOGIA.md §11), quindi la loro fine e' una
+       costante — meta.serieFine — e va scritta dove si guarda il grafico. */
+sostituisci(
+  "'<div class=\"chleg\"><span>'+leftLabel+'</span><span>'+srcLabel+'</span><span>oggi</span></div></div>';",
+  "'<div class=\"chleg\"><span>'+leftLabel+'</span><span>'+srcLabel+'</span><span>'+(rightLabel||'oggi')+'</span></div></div>';",
+  'etichette del grafico storico'
+);
+sostituisci(
+  "function svgLine(vals,up,srcLabel,leftLabel){",
+  `const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+// "giu 2026" da "2026-06-30": le serie sono mensili, il giorno non aggiunge nulla
+function fineSerie(){
+  const c=META&&META.serieFine;
+  if(!c||!/^\\d{4}-\\d{2}/.test(c))return null;
+  const p=c.split('-');
+  return MESI[+p[1]-1]+' '+p[0];
+}
+function svgLine(vals,up,srcLabel,leftLabel,rightLabel){`,
+  'firma di svgLine'
+);
+sostituisci(
+  "      return svgLine(vals,up,'storico Morningstar · base 100',left);",
+  "      return svgLine(vals,up,'storico Morningstar · base 100',left,fineSerie());",
+  'chiamata del grafico storico'
+);
+
+// 11. e la stessa cosa a parole, nella nota in fondo alla scheda del fondo
+sostituisci(
+  "    '<div class=\"note\">Fonte: Morningstar Italia · rendimenti in EUR al '+META.date+'. Informativa, non sollecitazione all\\'investimento.</div>';",
+  "    '<div class=\"note\">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\\'investimento.</div>';",
+  'nota della fonte nella scheda fondo'
+);
+
 // --- il caricatore ---------------------------------------------------------
 const caricatore = `
 /* Caricamento dei dati — METODOLOGIA.md §1.

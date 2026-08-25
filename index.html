@@ -290,7 +290,15 @@ function viewMappa(){const p=pool().filter(f=>f[I.cat]&&val(f)!=null);
       '<div class="mbarwrap"><div class="mzero"></div><div class="mbar '+(pos?'mp':'mn')+'" style="'+(pos?'left:50%;width:'+w+'%':'right:50%;width:'+w+'%')+'"></div></div>'+
       '<div class="mval2 '+cls(v)+'">'+fmt(v)+(s.brd!=null?'<small style="display:block;font-weight:600;font-size:10px" class="'+bCls(s.brd)+'">'+s.brd+'% ↑</small>':'')+'</div></div>';});
   return h;}
-function svgLine(vals,up,srcLabel,leftLabel){
+const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+// "giu 2026" da "2026-06-30": le serie sono mensili, il giorno non aggiunge nulla
+function fineSerie(){
+  const c=META&&META.serieFine;
+  if(!c||!/^\d{4}-\d{2}/.test(c))return null;
+  const p=c.split('-');
+  return MESI[+p[1]-1]+' '+p[0];
+}
+function svgLine(vals,up,srcLabel,leftLabel,rightLabel){
   const W=320,H=100,pad=6,N=vals.length;
   let mn=Math.min(...vals),mx=Math.max(...vals);if(mn===mx){mn-=1;mx+=1;}const rng=mx-mn;
   const X=i=>pad+(N<2?0:i/(N-1))*(W-2*pad);
@@ -302,7 +310,7 @@ function svgLine(vals,up,srcLabel,leftLabel){
     '<polygon points="'+area+'" fill="'+col+'" opacity="0.08"/>'+
     (100>=mn&&100<=mx?'<line x1="'+pad+'" y1="'+y100.toFixed(1)+'" x2="'+(W-pad)+'" y2="'+y100.toFixed(1)+'" stroke="#2b3a57" stroke-width="1" stroke-dasharray="3 3"/>':'')+
     '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>'+
-    '<div class="chleg"><span>'+leftLabel+'</span><span>'+srcLabel+'</span><span>oggi</span></div></div>';
+    '<div class="chleg"><span>'+leftLabel+'</span><span>'+srcLabel+'</span><span>'+(rightLabel||'oggi')+'</span></div></div>';
 }
 function growthChart(f){
   // storico reale se disponibile
@@ -310,7 +318,7 @@ function growthChart(f){
   if(raw){ const cum=raw.split(',').map(Number).filter(x=>isFinite(x));
     if(cum.length>=6){ const vals=cum.map(v=>100*(1+v/100)); const up=vals[vals.length-1]>=vals[0];
       const mo=cum.length-1; const left=mo>=60?'5 anni fa':mo>=36?'~3 anni fa':(mo+' mesi fa');
-      return svgLine(vals,up,'storico Morningstar · base 100',left);
+      return svgLine(vals,up,'storico Morningstar · base 100',left,fineSerie());
     }
   }
   const P=[];const push=(mo,val)=>{if(val!=null&&isFinite(val))P.push([mo,val]);};
@@ -365,7 +373,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   if(r)b+='<div class="note">Nella categoria <b>'+esc(f[I.cat])+'</b>: '+r.rank+'° su '+r.n+' per '+(isMom()?mLabel():'rend. '+mLabel())+(r.n>=5?' ('+(r.q===1?'top quartile':r.q===4?'ultimo quartile':r.q+'° quartile')+')':' — troppo pochi fondi per parlare di quartili')+'.</div>';
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' '+((f[I.nc]||1)===1?'classe':'classi')+'</span></div>'+
     (f[I.sec]&&f[I.sec]!==f[I.isin]?'<a class="msLink" target="_blank" rel="noopener" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+encodeURIComponent(f[I.sec])+'">Scheda Morningstar ↗</a>':'')+
-    '<div class="note">Fonte: Morningstar Italia · rendimenti in EUR al '+META.date+'. Informativa, non sollecitazione all\'investimento.</div>';
+    '<div class="note">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\'investimento.</div>';
   document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');}
 function scoreOf(f,ix){ix=ix||(isMom()?state.metric:14);const key=f[I.cat]+'|'+ix;if(!catCache[key]){const a=F.filter(x=>x[I.cat]===f[I.cat]&&x[ix]!=null).sort((x,y)=>y[ix]-x[ix]);catCache[key]=a.map(x=>x[I.isin]);}
   const a=catCache[key];const i=a.indexOf(f[I.isin]);return i<0?50:(a.length>1?Math.round((a.length-i-1)/(a.length-1)*100):50);}
