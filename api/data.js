@@ -130,39 +130,57 @@ const BUDGET_MS = Math.max(5000, Number(process.env.OICR_BUDGET_MS) || 40000);
 
 const restante = t0 => BUDGET_MS - (Date.now() - t0);
 
-async function fetchScreener(t0) {
-  const rows = [];
-  let total = 0;
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const url = `${API}?page=${page}&pageSize=${PAGE_SIZE}&sortOrder=Name%20asc&outputType=json&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
-    // ogni pagina non puo' durare piu' di quanto resta del budget: senza questo
-    // una singola richiesta appesa si mangerebbe tutto il tempo della funzione
-    const disponibile = restante(t0);
-    if (disponibile <= 2000) throw new Error('Budget scaduto dopo ' + rows.length + ' righe');
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), disponibile - 1000);
-    let res;
-    try {
-      res = await fetch(url, { headers: HEADERS, signal: ctrl.signal });
-    } catch (e) {
-      throw new Error(e && e.name === 'AbortError'
-        ? 'Timeout Morningstar (budget ' + BUDGET_MS + 'ms)'
-        : 'Morningstar irraggiungibile: ' + String(e && e.message || e));
-    } finally {
-      clearTimeout(timer);
-    }
-    if (!res.ok) throw new Error('Morningstar HTTP ' + res.status);
-    const j = await res.json();
-    const batch = j.rows || j.securities || [];
-    rows.push(...batch);
-    total = j.total || total;
-    // una pagina piu corta della richiesta significa fine dei dati
-    if (batch.length < PAGE_SIZE) break;
-    if (total && rows.length >= total) break;
+function urlPagina(page) {
+  return `${API}?page=${page}&pageSize=${PAGE_SIZE}&sortOrder=Name%20asc&outputType=json` +
+    `&version=1&languageId=it-IT&currencyId=EUR&universeIds=FOITA%24%24ALL` +
+    `&securityDataPoints=${encodeURIComponent(DATAPOINTS)}`;
+}
+
+// una pagina, con l'abort armato su quanto resta del budget: senza, una singola
+// richiesta appesa si mangerebbe tutto il tempo della funzione
+async function fetchPagina(page, t0) {
+  const disponibile = restante(t0);
+  if (disponibile <= 2000) throw new Error('Budget scaduto prima della pagina ' + page);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), disponibile - 1000);
+  let res;
+  try {
+    res = await fetch(urlPagina(page), { headers: HEADERS, signal: ctrl.signal });
+  } catch (e) {
+    throw new Error(e && e.name === 'AbortError'
+      ? 'Timeout Morningstar alla pagina ' + page + ' (budget ' + BUDGET_MS + 'ms)'
+      : 'Morningstar irraggiungibile: ' + String(e && e.message || e));
+  } finally {
+    clearTimeout(timer);
   }
+  if (!res.ok) throw new Error('Morningstar HTTP ' + res.status + ' alla pagina ' + page);
+  const j = await res.json();
+  return { righe: j.rows || j.securities || [], total: j.total || 0 };
+}
+
+/* Le pagine si chiedono IN PARALLELO. Misurato il 25/08/2026 via /api/ping:
+   sei pagine da 10.000 righe costano 31,7 s in fila e 15,6 s insieme. In fila
+   passavano dentro un budget di 40 s, ma senza margine — e dopo la fetch restano
+   ancora parse, filtro sul perimetro, deduplica e mediane. Quelle richieste non
+   hanno motivo di aspettarsi a vicenda: la prima serve solo a sapere quante sono. */
+async function fetchScreener(t0) {
+  const p1 = await fetchPagina(1, t0);
+  const total = p1.total;
+  const rows = p1.righe.slice();
+
+  if (rows.length >= PAGE_SIZE && total > PAGE_SIZE) {
+    const n = Math.min(MAX_PAGES, Math.ceil(total / PAGE_SIZE));
+    const altre = [];
+    for (let page = 2; page <= n; page++) altre.push(fetchPagina(page, t0));
+    // Promise.all: al primo errore fallisce tutto, ed e' quello che vogliamo —
+    // meglio lo snapshot che una classifica costruita su mezzo universo
+    for (const p of await Promise.all(altre)) rows.push(...p.righe);
+  }
+
   if (rows.length === 0) throw new Error('Screener vuoto');
-  // meglio lo snapshot che una classifica costruita su dati monchi
-  if (total && rows.length < total * 0.99) throw new Error('Screener incompleto ' + rows.length + '/' + total);
+  if (total && rows.length < total * 0.99) {
+    throw new Error('Screener incompleto ' + rows.length + '/' + total);
+  }
   return rows;
 }
 

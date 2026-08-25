@@ -105,13 +105,24 @@ module.exports = async (req, res) => {
     const righe = [].concat(...buone.map(p => p._righe || []));
     const isinDistinti = new Set(righe.map(r => r.isin || r.Isin).filter(Boolean));
 
+    /* Due cose diverse, che i soli conteggi confondono:
+       - PAGINE RIPETUTE: il parametro `page` viene ignorato e ci ritorna sempre
+         la stessa fetta. Si riconosce dai confini: due pagine che cominciano
+         con lo stesso ISIN. Questo sarebbe un guaio — meta' universo invisibile.
+       - ISIN RIPETUTI dentro un universo paginato bene: lo stesso titolo
+         compare piu' volte perche' e' quotato in piu' valute o su piu' mercati.
+         Fisiologico: build() tiene una riga per ISIN e amen. */
+    const primi = buone.map(p => p.primo).filter(Boolean);
+    const paginaRipetuta = new Set(primi).size !== primi.length;
+
     out.refreshCompleto = {
       ok: !rotta,
       msTotali: Date.now() - t0,
       modo: 'pagine in parallelo',
       righe: righe.length,
       isinDistinti: isinDistinti.size,
-      ripetute: righe.length - isinDistinti.size,
+      isinRipetuti: righe.length - isinDistinti.size,
+      paginaRipetuta,
       totaleDichiarato: p1.totale || null,
       pagine: pagine.map(p => ({
         pagina: p.pagina, ms: p.ms, righe: p.righe || 0, ok: p.ok,
@@ -159,9 +170,11 @@ module.exports = async (req, res) => {
       ? 'SI — Morningstar risponde da Vercel. Rilancia con ?full=1 per il refresh completo'
       : !r.ok
         ? 'PARZIALE — Morningstar risponde, ma il refresh non chiude: ' + r.motivo
-        : 'SI — refresh completo in ' + (r.msTotali / 1000).toFixed(1) + ' s' +
-          (r.ripetute ? ' · ATTENZIONE: ' + r.ripetute + ' righe ripetute fra le pagine' : ' · nessuna riga ripetuta') +
-          (f && !f.errore ? ' · ' + f.classi + ' classi -> ' + f.fondiDopoDedup + ' fondi' : '');
+        : r.paginaRipetuta
+          ? 'ROTTO — due pagine cominciano con lo stesso ISIN: il parametro `page` viene ignorato e meta universo non lo stiamo vedendo'
+          : 'SI — refresh completo in ' + (r.msTotali / 1000).toFixed(1) + ' s · paginazione corretta' +
+            (r.isinRipetuti ? ' · ' + r.isinRipetuti + ' ISIN ripetuti (stesso titolo quotato piu volte: build() ne tiene una riga)' : '') +
+            (f && !f.errore ? ' · ' + f.classi + ' classi -> ' + f.fondiDopoDedup + ' fondi' : '');
 
   res.status(200).json(out);
 };

@@ -124,7 +124,24 @@ dal 27/07/2026.
   `outputType=COMPACTJSON`, id nella forma `SECID]2]1]`
 
 Parametri: `universeIds=FOITA$$ALL`, `pageSize=10000`, `currencyId=EUR`, `languageId=it-IT`.
-La paginazione si ferma quando una pagina torna più corta della richiesta.
+
+**Misurato da Vercel (regione `iad1`) il 25/08/2026**, con `/api/ping?full=1`:
+
+- l'universo `FOITA$$ALL` dichiara **54.585 titoli**, in **6 pagine** (l'ultima da 4.585): la
+  paginazione funziona, i confini delle pagine sono contigui e non si sovrappongono;
+- **31,7 s in fila, 15,6 s in parallelo.** Da qui la scelta di `fetchScreener()` di chiedere
+  la prima pagina — che serve a sapere quante sono — e poi tutte le altre insieme;
+- **1.192 ISIN ripetuti** su 54.585 righe: lo stesso titolo quotato in più valute o su più
+  mercati. Fisiologico, `build()` tiene una riga per ISIN;
+- del perimetro Fineco (**6.284 ISIN** nell'allegato del 30/06) se ne ritrovano **6.138**;
+  i 146 mancanti non sono nell'universo `FOITA`. Dopo la deduplica: **3.818 fondi**, 3.806
+  con dati, 199 categorie.
+
+⚠️ Il conto `54.585` è arrivato dopo un falso allarme che vale la pena ricordare: la prima
+stesura di `/api/ping` aveva `page=1` scritto **fisso** nell'URL, quindi chiedeva sei volte la
+stessa pagina e riportava `righe: 60000` contro un `total: 54585`. Sembrava che Morningstar
+ignorasse la paginazione. Era la sonda a essere rotta. Da lì il controllo esplicito sui
+confini delle pagine: due pagine che cominciano con lo stesso ISIN ora fanno dire `ROTTO`.
 
 **Controllo di integrità**: se lo screener torna meno del 99% di `total` dichiarato, si
 solleva un errore e scatta il fallback. Meglio lo snapshot di ieri che una classifica
@@ -441,9 +458,16 @@ La risposta di fallback esce con `Cache-Control: s-maxage=900` (la richiesta suc
 ritenta il refresh) e l'intestazione `X-OICR-Source: morningstar | snapshot` dice da dove
 arrivano i dati senza doverli guardare.
 
-`tools/test_timeout.js` copre i tre casi: screener appeso, screener lento ma dentro il
-budget, screener in errore HTTP. Con budget a 5 s la risposta al primo caso esce in ~4,2 s,
-HTTP 200, dallo snapshot.
+**Quanto margine c'è davvero** (misure del 25/08/2026, §3): il refresh completo costa
+**15,6 s** con le pagine in parallelo, più ~0,2 s di filtro, deduplica e mediane. Contro un
+budget di 40 s e un `maxDuration` di 60, il margine è largo. In fila erano 31,7 s: passava,
+ma senza spazio per un rallentamento.
+
+`tools/test_timeout.js` copre sei casi: screener appeso, lento ma dentro il budget, in errore
+HTTP, il fallback deduplicato, **le pagine chieste davvero in parallelo**, e **una pagina che
+cade a metà strada** — lì si ricade sullo snapshot, perché meglio i dati di ieri che una
+classifica costruita su mezzo universo. Con budget a 5 s la risposta al primo caso esce in
+~4,2 s, HTTP 200, dallo snapshot.
 
 > Se il piano Vercel del progetto ha Fluid Compute, `maxDuration` si può alzare fino a 300 s;
 > non serve al fix, ma darebbe respiro se un giorno lo screener rallentasse davvero. Alzarlo

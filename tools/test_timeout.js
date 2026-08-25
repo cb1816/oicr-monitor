@@ -89,6 +89,59 @@ async function caso(nome, fakeFetch, attesa) {
   ok(m.nClassi > m.nTot, 'lo snapshot di fallback non risulta deduplicato');
   ok(m.schema === 2, 'lo snapshot di fallback non e\' in schema 2');
 
+  // 5. le pagine dello screener vanno chieste in parallelo, non in fila.
+  //    Misurato in produzione: 31,7 s in fila contro 15,6 s insieme.
+  console.log('\n5) pagine in parallelo');
+  {
+    const TOT = 54585, PAG = 10000;
+    const finte = [];
+    for (let i = 0; i < TOT; i++) {
+      finte.push({ isin: i === 0 ? ISIN_VERO : 'XX' + String(i).padStart(10, '0'),
+        Name: 'Finto ' + i + ' A EUR', categoryName: 'Azionari Internazionali Large Cap Blend',
+        closePriceDate: '2026-08-24' });
+    }
+    const chieste = []; let inVolo = 0, max = 0;
+    const vero = global.fetch;
+    global.fetch = async (u) => {
+      const page = +/[?&]page=(\d+)/.exec(u)[1];
+      chieste.push(page); inVolo++; max = Math.max(max, inVolo);
+      await new Promise(r => setTimeout(r, 120));
+      inVolo--;
+      return { ok: true, status: 200,
+        json: async () => ({ total: TOT, rows: finte.slice((page - 1) * PAG, page * PAG) }) };
+    };
+    const res = finto();
+    const t0 = Date.now();
+    await handler({}, res);
+    const dt = Date.now() - t0;
+    global.fetch = vero;
+    console.log('   pagine ' + chieste.sort((a, b) => a - b).join(',') +
+      '  ·  in volo insieme ' + max + '  ·  ' + dt + ' ms (in fila sarebbero ~' + (chieste.length * 120) + ')');
+    ok(chieste.length === 6, 'chiede tutte e sei le pagine');
+    ok(max > 1, 'le pagine partono insieme, non una dopo l\'altra');
+    ok(res._headers['x-oicr-source'] === 'morningstar', 'i dati arrivano da Morningstar, non dallo snapshot');
+  }
+
+  // 6. se una pagina cade, si va sullo snapshot: meglio i dati di ieri che
+  //    una classifica costruita su mezzo universo
+  console.log('\n6) una pagina cade a meta strada');
+  {
+    const vero = global.fetch;
+    global.fetch = async (u) => {
+      const page = +/[?&]page=(\d+)/.exec(u)[1];
+      if (page === 4) return { ok: false, status: 502, json: async () => ({}) };
+      return { ok: true, status: 200,
+        json: async () => ({ total: 54585, rows: new Array(10000).fill(0).map((_, i) =>
+          ({ isin: 'XX' + page + String(i).padStart(9, '0'), Name: 'F', categoryName: 'X' })) }) };
+    };
+    const res = finto();
+    await handler({}, res);
+    global.fetch = vero;
+    console.log('   HTTP ' + res.statusCode + '  ·  fonte ' + res._headers['x-oicr-source']);
+    ok(res._headers['x-oicr-source'] === 'snapshot', 'ricade sullo snapshot invece di pubblicare mezzo universo');
+    ok(res.body.funds.length > 0, 'lo snapshot ha comunque dei fondi');
+  }
+
   console.log(ko === 0 ? '\nTUTTO OK\n' : '\n' + ko + ' CONTROLLI FALLITI\n');
   process.exit(ko === 0 ? 0 : 1);
 })();
