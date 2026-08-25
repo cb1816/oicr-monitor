@@ -1,6 +1,10 @@
 /* OICR Monitor — network-first: online vedi sempre l'ultima versione, offline l'ultima scaricata */
-const CACHE = 'oicr-monitor';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
+/* Il nome della cache va cambiato a ogni ricablaggio: activate cancella tutte le
+   cache che non si chiamano cosi', ed e' l'unico modo di buttare via la vecchia
+   index.html da 2,2 MB che qualcuno ha ancora nel telefono. */
+const CACHE = 'oicr-monitor-v2';
+const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png',
+  './icon-192.png', './icon-512.png', './data/bootstrap.json'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();

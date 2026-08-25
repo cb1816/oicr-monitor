@@ -22,36 +22,78 @@ costo travestito da bravura, e infatti là sono state tolte.
   Vercel, mai da un link di anteprima di un singolo deployment (quelli contengono un hash
   e puntano a un deploy congelato).
 - Deploy: automatico a ogni commit su `main`.
-- File: `index.html`, `app.js`, `api/data.js` (dati e metriche), `data/isins.json`
-  (perimetro Fineco), `data/series.json` (storici), `data/snapshot.json` (fallback).
 - Gemella ETF: repo `etf-monitor`, sito `https://etf-monitor-italia.vercel.app`. Le due app
   si linkano col pulsantino fisso "⇄". La sua metodologia è in `METODOLOGIA.md` dentro quel
   repo, le prassi operative in `OPERATIVO.md`: **quei due file valgono anche qui** per tutto
   ciò che riguarda i canali di scrittura e le verifiche dopo il commit.
 
-### ⚠️ Lo stato anomalo di `index.html`, verificato il 25/08/2026
+### I file
 
-`index.html` pesa 2,2 MB e contiene un `const DATA={…}` con i dati di 4.399 fondi incollati
-dentro. **Non cita `app.js` e non chiama `/api/data`.** Il commit `8e820bb` del 20/08/2026
-("Build statica 19/08/2026") ha sostituito la versione dinamica, che caricava `app.js?v=5` e
-faceva `fetch('/api/data')`.
+| File | Cosa fa |
+|---|---|
+| `index.html` | l'app, ~37 KB, tutto in linea (CSS + JS). Non dipende da `app.js`. |
+| `api/data.js` | scarica lo screener, filtra sul perimetro Fineco, **deduplica** (§7), calcola le metriche. Con budget di tempo e fallback (§12). |
+| `data/isins.json` | perimetro Fineco: gli ISIN dell'allegato mensile. |
+| `data/series.json` | storici mensili a 5 anni, statici (§11). |
+| `data/snapshot.json` | fotografia servita da `api/data.js` quando Morningstar non risponde. Schema 1, convertita al volo. |
+| `data/bootstrap.json` | fotografia servita **al browser** per il primo disegno. Già in schema 2 e già deduplicata. |
+| `tools/` | i costruttori e i test. Non finiscono in produzione. |
 
-Conseguenze, tutte verificate:
+### Come si carica la pagina — ricablata il 25/08/2026
 
-- il sito serve una **fotografia del 19/08/2026** e non si aggiorna;
-- `app.js` è **codice morto**: la sua prima riga è `const DATA=window.DATA`, non fa nessuna
-  fetch. Era `index_6.html` a orchestrare fetch → filtro ISIN → iniezione di `app.js`, ed è
-  tenuto in radice apposta come riferimento per il ricablaggio;
-- `api/data.js` è **deployata e funzionante**, ma nessuno la chiama.
+`index.html` non contiene più i dati. All'apertura chiede **due sorgenti insieme**, non in
+cascata:
 
-Prima di ricablare vanno sciolti i due nodi di §7 e §13.
+1. **`data/bootstrap.json`** — statico, servito dalla CDN: qualcosa sullo schermo in
+   ~250 ms. In testata compare *"· aggiorno…"*.
+2. **`/api/data`** — prende il posto della copia appena risponde, e la scritta sparisce.
 
-### Regola operativa
+Se il refresh fallisce, la copia resta e la testata lo dichiara (*"· copia locale"*) invece
+di promettere un aggiornamento che non arriverà. La schermata d'errore compare **solo se
+falliscono entrambe**, con un pulsante Riprova.
 
-Dopo ogni modifica ad `app.js`, alzare il cache-bust in `index.html` (`app.js?v=N` → `v=N+1`),
-o il telefono continua a servire la versione vecchia dalla cache. Il service worker è
-**network-first**, quindi online si vede sempre l'ultima versione, ma la cache HTTP del
-browser no.
+⚠️ Le due risposte arrivano in ordine imprevedibile: un `/api/data` che fallisce in 20 ms
+precede tranquillamente una copia da 1,5 MB. Per questo il caricatore non disegna "quando
+arriva qualcosa" — ogni esito aggiorna uno stato, e lo stato decide. La prima stesura
+disegnava a mano a mano e lasciava *"aggiorno…"* a girare a vuoto per sempre.
+
+`data/bootstrap.json` lo genera **`tools/build_bootstrap.js`, che chiama `upgradeSnapshot()`
+di `api/data.js`**: stessa deduplica, stesse categorie, stesso schema. Non esiste una seconda
+regola che possa divergere — è l'errore in cui era caduto il vecchio `index_6.html`, che si
+portava dietro una sua deduplica scritta in JavaScript nel browser. Va rigenerato ogni volta
+che si rigenera `data/snapshot.json`.
+
+### Come si modifica `index.html`
+
+**Non a mano, e non riscrivendolo.** `tools/build_index.js` prende la pagina e le applica
+nove trasformazioni puntuali, ognuna delle quali *fallisce rumorosamente* se non trova il
+testo che si aspetta. Tutto il resto — CSS, testata, pannello Info, pulsante ponte ⇄ ETF,
+meta PWA — passa attraverso intatto. È il modo di non perdere pezzi per strada: il pulsante
+ponte è già andato perso una volta, in una riscrittura.
+
+Per rifare la pagina da zero: `git checkout index.html && node tools/build_index.js`.
+
+### Le prove
+
+| Comando | Cosa verifica |
+|---|---|
+| `node tools/test_dedup.js` | regola di deduplica, idempotenza, rappresentante, effetto sulle mediane |
+| `node tools/test_timeout.js` | i tre esiti di `/api/data`: appeso, lento, in errore |
+| `node tools/test_pagina.js` | la pagina in Chromium: schede, filtri, scheda fondo, pulsante ponte, errori JS |
+| `node tools/test_pagina.js --lento` | `/api/data` a 6 s: la copia locale deve reggere l'attesa |
+| `node tools/test_pagina.js --rotto` | `/api/data` in errore: la testata deve dire *"copia locale"* |
+| `node tools/test_pagina.js --rotto --nulla` | entrambe le sorgenti giù: schermata d'errore con Riprova |
+| `node tools/audit_dedup.js` | ispezione dei raggruppamenti, per scovare accorpamenti sbagliati |
+
+I primi due e l'audit girano con il solo Node. Le prove in browser vogliono Chromium:
+`npm i playwright && npx playwright install chromium`, una volta sola.
+
+### Regola operativa — cache
+
+A ogni ricablaggio, **cambiare il nome della cache in `sw.js`** (`oicr-monitor-v2` →
+`v3`…): `activate` cancella tutte le cache con un altro nome, ed è l'unico modo di buttare
+via dai telefoni la vecchia `index.html`. Il service worker è **network-first**, quindi
+online si vede sempre l'ultima versione, ma la cache HTTP del browser no.
 
 ---
 
@@ -393,8 +435,11 @@ HTTP 200, dallo snapshot.
    ricablaggio. Test: `node tools/test_dedup.js`, `node tools/test_timeout.js`; audit dei
    raggruppamenti: `node tools/audit_dedup.js`.
 2. **Dichiarare la staticità delle serie** (§11), sul modello di `SERIE_FINE` di ETF.
-3. **Ricablare `index.html`** su `/api/data`, riscrivere `app.js` per lo schema 2 e i campi di
-   categoria, alzare il cache-bust. Poi eliminare `index_6.html`.
+3. ~~Ricablare `index.html` su `/api/data`~~ — **fatto il 25/08/2026** (§1). La pagina è
+   passata da 2,11 MB a 37 KB. `app.js` e `index_6.html` non servono più: erano la vecchia
+   coppia a dati live, e `index_6.html` conteneva la deduplica lato browser che §7 dava per
+   irrecuperabile — fondeva le versioni coperte dal cambio con quelle scoperte, cioè
+   esattamente ciò che la regola nuova tiene separato. Da cancellare entrambi.
 4. **Ponte OICR ↔ ETF**: per ogni categoria, l'ETF di riferimento. "Questo gestore attivo vale
    il suo costo?" diventa una sottrazione visibile. Ora è possibile: le macro combaciano e lo
    score è calcolato allo stesso modo nelle due app.
