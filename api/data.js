@@ -36,11 +36,17 @@ const HEADERS = {
 // Soglia sotto la quale non si pubblica un numero relativo alla categoria.
 const MIN_N = 5;
 
-// Macro. NOTA: elenco a 8 voci, quello del sito live al 19/08/2026. Il riallineamento
-// alle 11 di ETF Monitor (Immobiliare e Materie Prime oggi dentro Alternativi, Fondi
-// Obiettivo dentro Altro) e' un passo a se': si cambia QUI e in macroOf().
+/* Macro — 10 voci, riallineate a ETF Monitor il 25/08/2026. Nove etichette sono
+   in comune con l'app ETF; le differenze sono volute, non residui:
+   - "Flessibili" qui c'e' e su ETF no. Sono 9 categorie e 552 fondi in cui e' il
+     gestore a decidere l'esposizione: su strumenti passivi non avrebbe oggetto.
+   - "Leva e Inverse (ETP)" non e' stata portata: sui fondi la leva non e' un fenomeno.
+   - "Cripto" non e' stata portata: nell'universo Fineco non c'e' nessun fondo di
+     categoria "Asset Digitali". Se ne entrasse uno finirebbe in "Altro"; il giorno
+     che succede si aggiunge la voce qui e la riga corrispondente in macroOf().
+   - "Materie Prime" senza il suffisso "(ETC)": qui l'involucro e' un fondo. */
 const MACROS = ['Azionari', 'Obbligazionari', 'Convertibili', 'Bilanciati',
-  'Flessibili', 'Monetari', 'Alternativi', 'Altro'];
+  'Flessibili', 'Monetari', 'Materie Prime', 'Immobiliare', 'Alternativi', 'Altro'];
 
 // L'ordine dei test conta: le categorie si chiamano "Obbligazionari Convertibili ..."
 // e "Bilanciati Flessibili ...", quindi i due casi ibridi vanno controllati PRIMA
@@ -48,13 +54,15 @@ const MACROS = ['Azionari', 'Obbligazionari', 'Convertibili', 'Bilanciati',
 function macroOf(cat) {
   const c = String(cat || '').trim();
   if (!c) return 'Altro';
+  if (/^Materie [Pp]rime/i.test(c)) return 'Materie Prime';
+  if (/^Immobiliar/i.test(c)) return 'Immobiliare';
   if (/Flessibil/i.test(c)) return 'Flessibili';
   if (/Convertibil/i.test(c)) return 'Convertibili';
   if (/^Azionari/i.test(c)) return 'Azionari';
-  if (/^Obbligazionari/i.test(c)) return 'Obbligazionari';
+  if (/^(Obbligazionari|Fondi Obiettivo)/i.test(c)) return 'Obbligazionari';   // target maturity
   if (/^Bilanciati/i.test(c)) return 'Bilanciati';
-  if (/^Monetari/i.test(c)) return 'Monetari';
-  if (/^(Alternativi|Immobiliar|Materie [Pp]rime)/i.test(c)) return 'Alternativi';
+  if (/^(Monetari|Liquidit)/i.test(c)) return 'Monetari';
+  if (/^(Alternativi|Hedge)/i.test(c)) return 'Alternativi';
   return 'Altro';
 }
 
