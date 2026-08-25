@@ -702,3 +702,9 @@ module.exports.accelGrezza = accelGrezza;
 module.exports.percentile = percentile;
 module.exports.quantile = quantile;
 module.exports.median = median;
+// usati da api/ping.js: la sonda deve interrogare Morningstar esattamente come
+// fa il refresh vero, altrimenti misura un'altra cosa
+module.exports.API = API;
+module.exports.HEADERS = HEADERS;
+module.exports.DATAPOINTS = DATAPOINTS;
+module.exports.PAGE_SIZE = PAGE_SIZE;

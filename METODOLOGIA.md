@@ -130,6 +130,28 @@ La paginazione si ferma quando una pagina torna più corta della richiesta.
 solleva un errore e scatta il fallback. Meglio lo snapshot di ieri che una classifica
 costruita su metà universo.
 
+### `/api/ping` — la sonda
+
+`api/ping.js` risponde in poche centinaia di byte alla domanda che vale il futuro dell'app:
+**Morningstar risponde a una chiamata che parte da Vercel?** Se sì, l'app si aggiorna da sola
+a ogni scadenza di cache e non serve più nessun browser sul Mac.
+
+Esiste perché `/api/data` restituisce 2 MB: quando non risponde non si capisce se sia lento
+lui, lenta la rete, o irraggiungibile Morningstar. La sonda separa i tre casi.
+
+| Chiamata | Cosa fa |
+|---|---|
+| `/api/ping` | una pagina da 5 righe: raggiungibilità, in ~1 s |
+| `/api/ping?full=1` | il refresh vero, tutte le pagine: dice se sta nel budget di §12 |
+
+Usa `API`, `HEADERS` e `DATAPOINTS` importati da `api/data.js` — interroga Morningstar
+esattamente come il refresh vero, altrimenti misurerebbe un'altra cosa. Non ha cache
+(`no-store`) e non tocca niente: è una domanda, non un dato.
+
+Il campo `verdetto` è in italiano e si legge da solo. Quando la risposta è negativa riporta il
+messaggio dell'host **alla lettera**: è lì che si distingue un blocco di rete da un rifiuto di
+Morningstar.
+
 **Limiti misurati**: il timeseries va in 429 dopo ~350-500 richieste; ~2.500 richieste al
 giorno in totale, con 120-400 ms fra l'una e l'altra.
 
