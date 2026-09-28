@@ -107,16 +107,17 @@ nav button.on{color:var(--accent)}
 .mbar.mp{background:var(--pos)}.mbar.mn{background:var(--neg)}
 .agg{color:var(--warn);font-weight:600}
 .msLink{display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
-/* Barra della suite (Fondi · ETF · Portafogli), 28/09/2026 */
+/* Barra di My Way: ← My Way · Portafogli · Fondi · ETF (Magüt), 28/09/2026 */
 .suite{max-width:760px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap}
 .suite a,.suite span{font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.4}
 .suite span{color:#04101f;background:var(--accent);border-color:var(--accent)}
 .suite a:hover{color:var(--txt)}
+.suite a.home{color:var(--accent);border-color:transparent;padding-left:2px}
 </style>
 </head>
 <body>
 <header>
-  <div class="suite" role="navigation" aria-label="Suite"><span aria-current="page">Fondi</span><a href="https://etf-monitor-italia.vercel.app">ETF</a><a href="https://magut.vercel.app">Portafogli</a></div>
+  <div class="suite" role="navigation" aria-label="My Way"><a href="https://myway-corrado.vercel.app" class="home">← My Way</a><a href="https://magut.vercel.app">Portafogli</a><span aria-current="page">Fondi</span><a href="https://etf-monitor-italia.vercel.app">ETF</a></div>
   <div class="hrow"><h1><b>OICR</b> Monitor</h1><div style="display:flex;align-items:center;gap:8px"><div class="sub" id="cnt"></div><button id="infoBtn" class="infob" aria-label="Info">i</button></div></div>
   <div class="controls">
     <div class="chips" id="metricChips"></div>
