@@ -371,6 +371,27 @@ function rischioRelativo(f){
     '<div class="note">Information Ratio = extra-rendimento sull\'indice diviso tracking error. Indicativamente sopra 0,5 è buono, sopra 1 eccellente; sotto zero il gestore ha tolto valore.'+
     (bm?' Benchmark di prospetto: <b>'+esc(bm)+'</b>, che non è l\'indice usato per IR e alpha.':'')+'</div>';
 }
+/* NAV della classe mostrata, da /api/nav (30/09/2026). Chiamata leggera all'apertura della scheda:
+   un solo ISIN, cache edge di 3 ore. Il NAV e' nella valuta della classe, non convertito. */
+const NAVC={};
+function navBox(f){return '<div class="mlbl">Valore della quota</div><div class="grid" id="navBox" data-isin="'+f[I.isin]+'">'+
+  '<div class="kv"><div class="k">NAV</div><div class="v sm zero">caricamento…</div></div></div>';}
+function navHtml(isin,r){
+  const k2=(k,v)=>'<div class="kv"><div class="k">'+k+'</div><div class="v sm">'+v+'</div></div>';
+  if(!r||r.err)return k2('NAV','<span class="zero">non raggiungibile ora</span>');
+  const v=r.nav&&r.nav[isin];
+  if(!v)return k2('NAV','<span class="zero">non pubblicato da Morningstar</span>');
+  const num=v[0].toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:4});
+  const d=v[2]?v[2].split('-').reverse().join('/'):'—';
+  return k2('NAV',num+' '+esc(v[1]||''))+k2('Data',d)+
+    (v[1]&&v[1]!=='EUR'?k2('Valuta','<span style="color:var(--warn)">'+esc(v[1])+', non convertito in €</span>'):'');
+}
+function caricaNav(isin){
+  const metti=r=>{const el=document.getElementById('navBox');if(el&&el.dataset.isin===isin)el.innerHTML=navHtml(isin,r);};
+  if(NAVC[isin]){metti(NAVC[isin]);return;}
+  fetch('/api/nav?isin='+encodeURIComponent(isin)).then(x=>{if(!x.ok)throw 0;return x.json();})
+    .then(r=>{NAVC[isin]=r;metti(r);}).catch(()=>metti({err:1}));
+}
 function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   const r=f[I.cat]?catRank(f):null;
   const kv=(k,v,sm)=>'<div class="kv"><div class="k">'+k+'</div><div class="v'+(sm?' sm':'')+'">'+v+'</div></div>';
@@ -380,7 +401,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
     '<div class="mlbl">Andamento (crescita di 100 €)</div>'+growthChart(f)+
     '<div class="mlbl">Rendimenti recenti</div><div class="grid">'+kv('1 sett.',p(f[I.w1]),1)+kv('1 mese',p(f[I.m1]),1)+kv('3 mesi',p(f[I.m3]),1)+kv('6 mesi',p(f[I.m6]),1)+kv('YTD',p(f[I.ytd]),1)+'</div>'+
     '<div class="mlbl">Rendimenti annualizzati</div><div class="grid">'+kv('1 anno',p(f[I.r1]),1)+kv('3 anni p.a.',p(f[I.r3]),1)+kv('5 anni p.a.',p(f[I.r5]),1)+'</div>'+
-    '<div class="mlbl">Rischio & rating</div><div class="grid">'+kv('Rating',(f[I.star]?'<span style="color:var(--warn)">'+stars(f[I.star])+'</span>':'—'),1)+kv('Volat. 3a',f[I.sd]!=null?f[I.sd].toFixed(1)+'%':'—',1)+kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+kv('Patrimonio',aumTxt(f[I.aum]),1)+'</div>'+rischioRelativo(f);
+    '<div class="mlbl">Rischio & rating</div><div class="grid">'+kv('Rating',(f[I.star]?'<span style="color:var(--warn)">'+stars(f[I.star])+'</span>':'—'),1)+kv('Volat. 3a',f[I.sd]!=null?f[I.sd].toFixed(1)+'%':'—',1)+kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+kv('Patrimonio',aumTxt(f[I.aum]),1)+'</div>'+navBox(f)+rischioRelativo(f);
   let mh='';MOMS.forEach(function(mm){var ix=mm[0],lb=mm[1];if(f[ix]==null)return;var sc=scoreOf(f,ix);
     mh+='<div class="kv"><div class="k">'+lb+(state.metric===ix?' ✓':'')+'</div><div class="v">'+p(f[ix])+' &nbsp;·&nbsp; '+sc+'/100</div><div class="mombar"><i style="width:'+sc+'%"></i></div></div>';});
   if(mh)b+='<div class="mlbl">Momentum — le tre varianti, con punteggio nella categoria</div>'+mh;
@@ -396,7 +417,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' '+((f[I.nc]||1)===1?'classe':'classi')+'</span></div>'+
     (f[I.sec]&&f[I.sec]!==f[I.isin]?'<a class="msLink" target="_blank" rel="noopener" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+encodeURIComponent(f[I.sec])+'">Scheda Morningstar ↗</a>':'')+
     '<div class="note">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\'investimento.</div>';
-  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');}
+  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');caricaNav(f[I.isin]);}
 function scoreOf(f,ix){ix=ix||(isMom()?state.metric:14);const key=f[I.cat]+'|'+ix;if(!catCache[key]){const a=F.filter(x=>x[I.cat]===f[I.cat]&&x[ix]!=null).sort((x,y)=>y[ix]-x[ix]);catCache[key]=a.map(x=>x[I.isin]);}
   const a=catCache[key];const i=a.indexOf(f[I.isin]);return i<0?50:(a.length>1?Math.round((a.length-i-1)/(a.length-1)*100):50);}
 function openInfo(){

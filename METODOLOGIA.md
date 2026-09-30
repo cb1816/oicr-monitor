@@ -591,3 +591,9 @@ Date dei NAV sui 3.809 fondi di `/api/data`: 3.694 al 28–29/09, 84 settimanali
 
 Test: `node --test test/nav.test.js` (solo logica, senza rete).
 <!-- nav:fine -->
+
+**Nella scheda fondo** (30/09/2026): sezione "Valore della quota" con il NAV della classe mostrata, la
+valuta e la data di chiusura, da `/api/nav?isin=<ISIN>` all'apertura della scheda (un solo ISIN, memoria
+nella pagina finché resta aperta). Classi non in EUR: avviso "non convertito in €". Se Morningstar non ha
+il NAV o l'endpoint non risponde, la scheda lo dice e il resto funziona. Le altre classi dello stesso
+fondo non sono mostrate: la pagina conosce solo la classe rappresentativa.
