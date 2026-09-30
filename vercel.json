@@ -1,8 +1,25 @@
 {
   "functions": {
-    "api/data.js": { "maxDuration": 60, "memory": 1024, "includeFiles": "data/**" }
+    "api/data.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "includeFiles": "data/**"
+    },
+    "api/nav.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "includeFiles": "data/isins.json"
+    }
   },
   "headers": [
-    { "source": "/data/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] }
+    {
+      "source": "/data/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
   ]
 }

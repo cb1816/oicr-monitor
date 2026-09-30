@@ -529,3 +529,34 @@ classifica costruita su mezzo universo. Con budget a 5 s la risposta al primo ca
    predisposto e si accende da solo quando i dati ci sono.
 6. **Pesi del composito** (§5) e eventuale banda morta sugli stati, se dopo qualche settimana i
    segnali risultano rumorosi.
+
+<!-- nav:inizio -->
+## 14. NAV di tutte le classi — `/api/nav`, aggiunto il 30/09/2026
+
+`/api/data` serve la pagina: una classe per fondo (§7), rendimenti e metriche, nessun prezzo.
+Chi **valorizza** una posizione (CRM, Magüt) ha bisogno del valore della quota della classe
+esatta del cliente, quindi `/api/nav` non deduplica.
+
+- `GET /api/nav`: tutte le classi di `data/isins.json` (6.284 ISIN, lista Fineco).
+- `GET /api/nav?isin=A,B,…`: solo quelle, fino a 300, anche fuori lista.
+- Risposta: `{ meta, nav: { ISIN: [nav, valuta, 'AAAA-MM-GG', universo] }, mancanti: [ISIN] }`.
+  `meta` ha `dataChiusura` (moda delle date), `nTrovati`, `nMancanti`, `nPrimaDellaChiusura`
+  (NAV più vecchi della moda: settimanali, sospesi) e `nonEur`.
+- Fonte: lo screener di §1, campi `ClosePrice`, `closePriceDate`, `currency`. Prima l'universo
+  italiano `FOITA$$ALL` (a pagine, o per ISIN a blocchi di 100), poi quello europeo `FOEUR$$ALL`
+  per chi manca.
+- **Più valute**: 242 classi hanno il NAV pubblicato in più valute (è lo stesso valore convertito).
+  Si tiene quello in EUR se c'è, altrimenti il più recente.
+- **Il NAV non è convertito**: resta nella valuta indicata (905 fondi su 3.809 non sono in EUR). La
+  conversione spetta a chi valorizza, con il cambio della stessa data.
+- Cache 3 ore (`s-maxage=10800`), poi rinnovo in background. Nessuno snapshot di ripiego: meglio
+  un 503 dichiarato che un NAV vecchio presentato come di oggi.
+
+**Copertura misurata il 30/09/2026** (dal browser, NAV al 29/09): 6.129 ISIN su 6.284
+nell'universo italiano, tutti con NAV; 80 dei 155 restanti in quello europeo; **75 in nessun
+universo** (FR, GB, IE, LU: classi chiuse o fuse dopo la lista del 30/06), elencati in `mancanti`.
+Date dei NAV sui 3.809 fondi di `/api/data`: 3.694 al 28–29/09, 84 settimanali al 23/09,
+8 fermi da mesi o anni.
+
+Test: `node --test test/nav.test.js` (solo logica, senza rete).
+<!-- nav:fine -->
