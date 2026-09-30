@@ -138,10 +138,11 @@ nav button.on{color:var(--accent)}
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <script>
 let DATA,F,CATS,MO,META,SER,macroCounts={};
-const I={isin:0,name:1,cat:2,macro:3,ytd:4,m1:5,m3:6,m6:7,r1:8,r3:9,r5:10,star:11,sd:12,oc:13,mom:14,nc:15,w1:16,mom2:17,mom3:18,drank:19,cons:20,ocq:21,sec:22};
+const I={isin:0,name:1,cat:2,macro:3,ytd:4,m1:5,m3:6,m6:7,r1:8,r3:9,r5:10,star:11,sd:12,oc:13,mom:14,nc:15,w1:16,mom2:17,mom3:18,drank:19,cons:20,ocq:21,sec:22,ir12:23,ir36:24,ir60:25,te:26,alpha:27,mdd:28,aum:29,bm:30};
 const MOMS=[[14,'Mom. rel.'],[17,'Mom. 12-1'],[18,'Mom. accel.']];
 const MOMDESC={14:'eccesso su 3-6 mesi vs mediana di categoria, corretto per volatilità',17:'rendimento 12 mesi escluso l\'ultimo mese',18:'accelerazione: 1 mese e 3m annualizzato vs 6m annualizzato, vs categoria'};
-const METRICS=[['1 sett.',16],['1 mese',5],['3 mesi',6],['YTD',4],['1 anno',8],['3 anni p.a.',9],['5 anni p.a.',10],['🔥 Mom. rel.',14],['🔥 Mom. 12-1',17],['🔥 Mom. accel.',18],['🎯 Consistenza',20]];
+const METRICS=[['1 sett.',16],['1 mese',5],['3 mesi',6],['YTD',4],['1 anno',8],['3 anni p.a.',9],['5 anni p.a.',10],['🔥 Mom. rel.',14],['🔥 Mom. 12-1',17],['🔥 Mom. accel.',18],['🎯 Consistenza',20],['📐 IR 3 anni',24],['📐 IR 1 anno',23]];
+const IRM=[23,24,25];
 function aggiungiDeltaRango(){if(META&&META.prevDate&&!METRICS.some(m=>m[1]===19))METRICS.push(['⚡ Δ rango',19]);}
 let state={metric:8,macro:null,cat:null,q:'',tab:'rank',catSort:'val'};
 const isMom=()=>state.metric===14||state.metric===17||state.metric===18||state.metric===19||state.metric===20;
@@ -193,7 +194,7 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{state.tab=b.da
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));render();});
 
 const val=f=>f[state.metric];
-function fmt(v){if(v===null||v===undefined)return'—';if(typeof state!=='undefined'&&state.metric===20)return v.toFixed(0)+'/5';if(typeof state!=='undefined'&&state.metric===19)return(v>0?'+':'')+v.toFixed(0)+' pt';return(v>0?'+':'')+v.toFixed(1)+'%'}
+function fmt(v){if(v===null||v===undefined)return'—';if(typeof state!=='undefined'&&IRM.includes(state.metric))return(v>0?'+':'')+v.toFixed(2);if(typeof state!=='undefined'&&state.metric===20)return v.toFixed(0)+'/5';if(typeof state!=='undefined'&&state.metric===19)return(v>0?'+':'')+v.toFixed(0)+' pt';return(v>0?'+':'')+v.toFixed(1)+'%'}
 function cls(v){if(v===null||v===undefined)return'zero';if(typeof state!=='undefined'&&state.metric===20)return v>=4?'pos':(v<=1?'neg':'zero');return v>0.05?'pos':(v<-0.05?'neg':'zero')}
 function stars(n){return n?'★'.repeat(n)+'☆'.repeat(5-n):''}
 function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -356,16 +357,30 @@ function render(){buildCatSel();const v=document.getElementById('view');
   v.innerHTML=state.tab==='rank'?viewRank():state.tab==='topflop'?viewTopFlop():state.tab==='cat'?viewCat():state.tab==='mappa'?viewMappa():viewIdee();
   window.scrollTo(0,0);}
 
+function aumTxt(m){if(m==null)return'—';return m>=1000?(m/1000).toFixed(1)+' mld €':m+' mln €';}
+function rischioRelativo(f){
+  if([I.ir12,I.ir36,I.ir60,I.te,I.alpha,I.mdd].every(i=>f[i]==null))return'';
+  const sg=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2);
+  const pc=v=>v==null?'—':v.toFixed(1)+'%';
+  const col=(v,t)=>'<span class="'+(v==null?'zero':v>0.05?'pos':v<-0.05?'neg':'zero')+'">'+t+'</span>';
+  const k2=(k,v)=>'<div class="kv"><div class="k">'+k+'</div><div class="v sm">'+v+'</div></div>';
+  const bm=(f[I.bm]!=null&&DATA.benchNames)?DATA.benchNames[f[I.bm]]:null;
+  return '<div class="mlbl">Rispetto all\'indice di categoria Morningstar</div><div class="grid">'+
+    k2('IR 1 anno',col(f[I.ir12],sg(f[I.ir12])))+k2('IR 3 anni',col(f[I.ir36],sg(f[I.ir36])))+k2('IR 5 anni',col(f[I.ir60],sg(f[I.ir60])))+
+    k2('Tracking error 3a',pc(f[I.te]))+k2('Alpha 3a',col(f[I.alpha],f[I.alpha]==null?'—':sg(f[I.alpha])+'%'))+k2('Max ribasso 3a',f[I.mdd]==null?'—':col(f[I.mdd],pc(f[I.mdd])))+'</div>'+
+    '<div class="note">Information Ratio = extra-rendimento sull\'indice diviso tracking error. Indicativamente sopra 0,5 è buono, sopra 1 eccellente; sotto zero il gestore ha tolto valore.'+
+    (bm?' Benchmark di prospetto: <b>'+esc(bm)+'</b>, che non è l\'indice usato per IR e alpha.':'')+'</div>';
+}
 function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   const r=f[I.cat]?catRank(f):null;
   const kv=(k,v,sm)=>'<div class="kv"><div class="k">'+k+'</div><div class="v'+(sm?' sm':'')+'">'+v+'</div></div>';
-  const p=(v)=>'<span class="'+cls(v)+'">'+fmt(v)+'</span>';
+  const p=(v)=>'<span class="'+(v==null?'zero':v>0.05?'pos':(v<-0.05?'neg':'zero'))+'">'+(v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%')+'</span>';
   let b='<button class="closex" onclick="closeOv()">✕</button><h2>'+esc(f[I.name])+'</h2>'+
     '<div class="mc"><span class="pill">'+f[I.isin]+'</span>'+esc(f[I.cat]||'categoria n/d')+'</div>'+
     '<div class="mlbl">Andamento (crescita di 100 €)</div>'+growthChart(f)+
     '<div class="mlbl">Rendimenti recenti</div><div class="grid">'+kv('1 sett.',p(f[I.w1]),1)+kv('1 mese',p(f[I.m1]),1)+kv('3 mesi',p(f[I.m3]),1)+kv('6 mesi',p(f[I.m6]),1)+kv('YTD',p(f[I.ytd]),1)+'</div>'+
     '<div class="mlbl">Rendimenti annualizzati</div><div class="grid">'+kv('1 anno',p(f[I.r1]),1)+kv('3 anni p.a.',p(f[I.r3]),1)+kv('5 anni p.a.',p(f[I.r5]),1)+'</div>'+
-    '<div class="mlbl">Rischio & rating</div><div class="grid">'+kv('Rating',(f[I.star]?'<span style="color:var(--warn)">'+stars(f[I.star])+'</span>':'—'),1)+kv('Volat. 3a',f[I.sd]!=null?f[I.sd].toFixed(1)+'%':'—',1)+kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+'</div>';
+    '<div class="mlbl">Rischio & rating</div><div class="grid">'+kv('Rating',(f[I.star]?'<span style="color:var(--warn)">'+stars(f[I.star])+'</span>':'—'),1)+kv('Volat. 3a',f[I.sd]!=null?f[I.sd].toFixed(1)+'%':'—',1)+kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+kv('Patrimonio',aumTxt(f[I.aum]),1)+'</div>'+rischioRelativo(f);
   let mh='';MOMS.forEach(function(mm){var ix=mm[0],lb=mm[1];if(f[ix]==null)return;var sc=scoreOf(f,ix);
     mh+='<div class="kv"><div class="k">'+lb+(state.metric===ix?' ✓':'')+'</div><div class="v">'+p(f[ix])+' &nbsp;·&nbsp; '+sc+'/100</div><div class="mombar"><i style="width:'+sc+'%"></i></div></div>';});
   if(mh)b+='<div class="mlbl">Momentum — le tre varianti, con punteggio nella categoria</div>'+mh;
@@ -377,7 +392,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
       '<div class="note">Batte la mediana della categoria su <b>'+f[I.cons]+' orizzonti su 5</b> (1m, 3m, 6m, 1 anno, 3 anni)'+
       (f[I.ocq]!=null?' · costo nel <b>'+f[I.ocq]+'° quartile</b> della categoria ('+OCL[f[I.ocq]]+')':'')+'.</div>';}
   if(META.prevDate&&f[I.drank]!=null)b+='<div class="note">Velocità di rango: <b class="'+cls(f[I.drank])+'">'+(f[I.drank]>0?'+':'')+f[I.drank]+' punti</b> di percentile nella categoria dal '+META.prevDate+'.</div>';
-  if(r)b+='<div class="note">Nella categoria <b>'+esc(f[I.cat])+'</b>: '+r.rank+'° su '+r.n+' per '+(isMom()?mLabel():'rend. '+mLabel())+(r.n>=5?' ('+(r.q===1?'top quartile':r.q===4?'ultimo quartile':r.q+'° quartile')+')':' — troppo pochi fondi per parlare di quartili')+'.</div>';
+  if(r)b+='<div class="note">Nella categoria <b>'+esc(f[I.cat])+'</b>: '+r.rank+'° su '+r.n+' per '+(isMom()||IRM.includes(state.metric)?mLabel():'rend. '+mLabel())+(r.n>=5?' ('+(r.q===1?'top quartile':r.q===4?'ultimo quartile':r.q+'° quartile')+')':' — troppo pochi fondi per parlare di quartili')+'.</div>';
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' '+((f[I.nc]||1)===1?'classe':'classi')+'</span></div>'+
     (f[I.sec]&&f[I.sec]!==f[I.isin]?'<a class="msLink" target="_blank" rel="noopener" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+encodeURIComponent(f[I.sec])+'">Scheda Morningstar ↗</a>':'')+
     '<div class="note">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\'investimento.</div>';
@@ -392,7 +407,7 @@ function openInfo(){
     '<div class="ihead">Le schede</div>'+
     '<div class="ip"><b>Classifica</b> (tutti i fondi ordinati) · <b>Top/Flop</b> (i 10 migliori e peggiori) · <b>Categorie</b> (mediana e migliore/peggiore) · <b>Mappa</b> (tutte le categorie a confronto) · <b>Idee</b>. In alto: filtri per macro-categoria e categoria, e ricerca per nome o ISIN.</div>'+
     '<div class="ihead">Le metriche</div>'+
-    '<div class="ip">Con un tocco scegli il criterio con cui l\'app ordina e confronta: <b>1 sett., 1 mese, 3 mesi, YTD, 1 anno, 3 e 5 anni</b> e tre varianti di <b>🔥 Momentum</b>, più <b>🎯 Consistenza</b> e <b>🔥 Momentum</b>. La scelta si applica ovunque — classifiche, categorie e mappa.</div>'+
+    '<div class="ip">Con un tocco scegli il criterio con cui l\'app ordina e confronta: <b>1 sett., 1 mese, 3 mesi, YTD, 1 anno, 3 e 5 anni</b> e tre varianti di <b>🔥 Momentum</b>, più <b>🎯 Consistenza</b> e <b>📐 Information Ratio</b> a 1 e 3 anni, calcolato da Morningstar contro l\'indice della categoria. La scelta si applica ovunque — classifiche, categorie e mappa.</div>'+
     '<div class="ibox">'+
     '<div class="ihead hot" style="margin-top:0">🔥 Il criterio Momentum</div>'+
     '<div class="ip"><b>Cos\'è.</b> Misura la <b>forza recente</b> di un fondo: quanto sta andando bene negli ultimi mesi. L\'idea è che ciò che corre tende a mantenere la spinta nel breve. <b>Tre varianti, selezionabili in alto.</b> <b>Mom. rel.</b>: eccesso di rendimento su 3-6 mesi rispetto alla <b>mediana della categoria</b>, corretto per la volatilità — toglie il beta della categoria e non premia chi è solo più volatile. <b>Mom. 12-1</b>: rendimento a 12 mesi <b>escluso l\'ultimo mese</b>, la versione con più evidenza empirica, lenta ma robusta. <b>Mom. accel.</b>: pesa l\'ultimo mese e l\'<b>accelerazione</b> (3 mesi annualizzato meno 6 mesi annualizzato), sempre rispetto alla categoria — la più rapida sui cambi di fase, la più soggetta a falsi segnali. Nella scheda del fondo le vedi tutte e tre insieme.</div>'+

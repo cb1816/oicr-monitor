@@ -44,7 +44,7 @@ sostituisci(
 // 2. il campo 22 (SecId) e' nuovo dello schema 2: serve per il link a Morningstar.
 sostituisci(
   "drank:19,cons:20,ocq:21};",
-  "drank:19,cons:20,ocq:21,sec:22};",
+  "drank:19,cons:20,ocq:21,sec:22,ir12:23,ir36:24,ir60:25,te:26,alpha:27,mdd:28,aum:29,bm:30};",
   'mappa dei campi'
 );
 
@@ -170,6 +170,69 @@ sostituisci(
   "    '<div class=\"note\">Fonte: Morningstar Italia · rendimenti in EUR al '+META.date+'. Informativa, non sollecitazione all\\'investimento.</div>';",
   "    '<div class=\"note\">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\\'investimento.</div>';",
   'nota della fonte nella scheda fondo'
+);
+
+/* 12-16. Rischio relativo e patrimonio (campi 23-30, aggiunti il 28/09/2026).
+   L'Information Ratio entra fra le metriche ordinabili (1 e 3 anni) e ha un suo
+   formato: e' un rapporto, non una percentuale. Nella scheda fondo compare un
+   blocco dedicato con IR 1/3/5 anni, tracking error, alpha, massimo ribasso e il
+   benchmark di prospetto — tenuto separato perche' IR e alpha Morningstar sono
+   calcolati contro l'indice della CATEGORIA, non contro quello. I campi possono
+   mancare (copia locale vecchia, categorie senza indice): ogni lettura li tratta
+   come null, e il blocco sparisce se sono tutti vuoti. */
+sostituisci(
+  "['🎯 Consistenza',20]];",
+  "['🎯 Consistenza',20],['📐 IR 3 anni',24],['📐 IR 1 anno',23]];\nconst IRM=[23,24,25];",
+  'metriche Information Ratio'
+);
+sostituisci(
+  "function fmt(v){if(v===null||v===undefined)return'—';",
+  "function fmt(v){if(v===null||v===undefined)return'—';if(typeof state!=='undefined'&&IRM.includes(state.metric))return(v>0?'+':'')+v.toFixed(2);",
+  'formato dell\'Information Ratio'
+);
+sostituisci(
+  "(isMom()?mLabel():'rend. '+mLabel())",
+  "(isMom()||IRM.includes(state.metric)?mLabel():'rend. '+mLabel())",
+  'etichetta del rango nella scheda fondo'
+);
+sostituisci(
+  "function detail(isin){",
+  `function aumTxt(m){if(m==null)return'—';return m>=1000?(m/1000).toFixed(1)+' mld €':m+' mln €';}
+function rischioRelativo(f){
+  if([I.ir12,I.ir36,I.ir60,I.te,I.alpha,I.mdd].every(i=>f[i]==null))return'';
+  const sg=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2);
+  const pc=v=>v==null?'—':v.toFixed(1)+'%';
+  const col=(v,t)=>'<span class="'+(v==null?'zero':v>0.05?'pos':v<-0.05?'neg':'zero')+'">'+t+'</span>';
+  const k2=(k,v)=>'<div class="kv"><div class="k">'+k+'</div><div class="v sm">'+v+'</div></div>';
+  const bm=(f[I.bm]!=null&&DATA.benchNames)?DATA.benchNames[f[I.bm]]:null;
+  return '<div class="mlbl">Rispetto all\\'indice di categoria Morningstar</div><div class="grid">'+
+    k2('IR 1 anno',col(f[I.ir12],sg(f[I.ir12])))+k2('IR 3 anni',col(f[I.ir36],sg(f[I.ir36])))+k2('IR 5 anni',col(f[I.ir60],sg(f[I.ir60])))+
+    k2('Tracking error 3a',pc(f[I.te]))+k2('Alpha 3a',col(f[I.alpha],f[I.alpha]==null?'—':sg(f[I.alpha])+'%'))+k2('Max ribasso 3a',f[I.mdd]==null?'—':col(f[I.mdd],pc(f[I.mdd])))+'</div>'+
+    '<div class="note">Information Ratio = extra-rendimento sull\\'indice diviso tracking error. Indicativamente sopra 0,5 è buono, sopra 1 eccellente; sotto zero il gestore ha tolto valore.'+
+    (bm?' Benchmark di prospetto: <b>'+esc(bm)+'</b>, che non è l\\'indice usato per IR e alpha.':'')+'</div>';
+}
+function detail(isin){`,
+  'blocco rischio relativo della scheda fondo'
+);
+sostituisci(
+  "kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+'</div>';",
+  "kv('Costo',f[I.oc]!=null?f[I.oc].toFixed(2)+'%':'—',1)+kv('Patrimonio',aumTxt(f[I.aum]),1)+'</div>'+rischioRelativo(f);",
+  'patrimonio e rischio relativo nella scheda fondo'
+);
+sostituisci(
+  "più <b>🎯 Consistenza</b> e <b>🔥 Momentum</b>.",
+  "più <b>🎯 Consistenza</b> e <b>📐 Information Ratio</b> a 1 e 3 anni, calcolato da Morningstar contro l\\'indice della categoria.",
+  'pannello Info: Information Ratio'
+);
+
+/* 17. Nella scheda fondo i rendimenti passavano per fmt()/cls(), che seguono la
+   metrica scelta: con "🎯 Consistenza" attiva un +10,4% diventava "10/5", con
+   l'IR "+10.35" senza segno di percentuale. La scheda mostra sempre percentuali,
+   qualunque sia la metrica della classifica. */
+sostituisci(
+  "const p=(v)=>'<span class=\"'+cls(v)+'\">'+fmt(v)+'</span>';",
+  "const p=(v)=>'<span class=\"'+(v==null?'zero':v>0.05?'pos':(v<-0.05?'neg':'zero'))+'\">'+(v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%')+'</span>';",
+  'formato dei rendimenti nella scheda fondo'
 );
 
 // --- il caricatore ---------------------------------------------------------

@@ -363,10 +363,36 @@ danni di quanti ne ripara.
 
 ## 8. Rischio
 
-Volatilità 36m a livello di fondo e mediana di categoria. Max drawdown e rendimento/volatilità
-**non sono raccolti** su questo universo: i datapoint `MaxDrawdownM36` e `SharpeM36` non sono
-fra quelli chiesti. Correlazioni e drawdown a 5 anni si potrebbero calcolare dalle serie in
-`data/series.json`: non fatto.
+Volatilità 36m a livello di fondo e mediana di categoria.
+
+### Rischio relativo e patrimonio — aggiunti il 28/09/2026
+
+Otto datapoint in più nella stessa chiamata allo screener, nessuna fonte nuova:
+`InformationRatioM12/M36/M60`, `TrackingErrorM36`, `AlphaM36`, `MaxDrawdownM36`, `FundTNAV`,
+`PrimaryBenchmarkName`. Finiscono nei campi 23-30 del record (§10).
+
+**Contro quale indice.** IR, alpha e tracking error sono calcolati da Morningstar contro
+l'**indice di riferimento della categoria**, non contro il benchmark di prospetto. Si vede bene
+sui fondi a obiettivo di rendimento: AB All Market Income ha "SOFR + 5%" come benchmark di
+prospetto ed R² 82 — contro un tasso monetario sarebbe impossibile. Per i fondi "puri" i due
+indici coincidono (Fineco S&P 500 Index: R² 99,9, TE 0,6). Per questo il benchmark di prospetto
+viaggia a parte, in una tabella (`benchNames`, indice nel campo 30), ed è scritto accanto all'IR
+nella scheda fondo con l'avvertenza che non è quello usato nel calcolo.
+
+**Copertura** misurata il 28/09/2026 sui 3.809 fondi: IR 1a 3.450, 3a 3.335, 5a 3.208. Mancano
+i fondi senza storia sufficiente e le categorie senza indice Morningstar ("Azionari/Bilanciati/
+Obbligazionari Altro", capitale protetto: 0 su 55), più casi isolati (M&G Optimal Income).
+
+**Patrimonio** (`FundTNAV`) è del fondo intero, tutte le classi, in milioni di euro
+(conversione Morningstar con `currencyId=EUR`). Serve anche a riconoscere le classi dello
+stesso fondo: stesso patrimonio nella stessa categoria = stesso portafoglio.
+
+**Costo in tempo.** Le pagine dello screener passano da ~3,8 a ~5,5 MB (+45%). Il refresh
+misurato il 25/08 costava 15,6 s su un budget di 40 (§12): va ricontrollato con
+`/api/ping?full=1` dopo il deploy.
+
+Correlazioni e drawdown a 5 anni si potrebbero calcolare dalle serie in `data/series.json`:
+non fatto.
 
 ---
 
@@ -384,21 +410,26 @@ fra quelli chiesti. Correlazioni e drawdown a 5 anni si potrebbero calcolare dal
 
 ## 10. Schema del record — `schema: 2`
 
-`DATA.funds`, array posizionale a **23 campi**:
+`DATA.funds`, array posizionale a **31 campi**:
 
 `0 isin, 1 name, 2 cat, 3 macro, 4 ytd, 5 m1, 6 m3, 7 m6, 8 r1, 9 r3, 10 r5, 11 star, 12 sd,
 13 oc, 14 mom_rel, 15 nc, 16 w1, 17 mom_121, 18 mom_accel, 19 drank, 20 cons, 21 ocq,
-22 secId`.
+22 secId, 23 ir12, 24 ir36, 25 ir60, 26 te36, 27 alpha36, 28 mdd36, 29 aum (mln EUR),
+30 benchmark di prospetto (indice in `DATA.benchNames`)`.
+
+I campi 23-30 sono del 28/09/2026 (§8) e **possono mancare**: una copia locale generata prima
+ha record da 23 campi. Lo schema resta 2 perché nessun campo esistente cambia significato;
+l'app legge i nuovi come `null` se assenti.
 
 ⚠️ **Il campo 22 è nuovo.** Nello **schema 1** (lo snapshot in repo, 18 campi) il SecId stava
 in **17**; nel build congelato il 17 è invece `mom_121` e il SecId non c'è. `upgradeSnapshot()`
 legge il vecchio 17 e lo riscrive in 22.
 
 `DATA.cats`, **oggetti** (nel build congelato erano solo nomi): `nome, macro, n, m1, m3, m6,
-r1, r3, trend, mom121, accel, sd, ocMed, starMed, ampiezza, disp, score`.
+r1, r3, trend, mom121, accel, sd, ocMed, starMed, ir3, aum, ampiezza, disp, score`.
 
 Più `catNames`, `macroOrder`, `series`, `meta{date, dataChiusura, source, nTot, nClassi,
-nData, nSeries, nCat, nCatSottoSoglia, nNoOc, minN, prevDate, schema}`.
+nData, nSeries, nCat, nCatSottoSoglia, nNoOc, nIR, minN, prevDate, schema}` e `benchNames`.
 
 `nTot` è il numero di **fondi dopo la deduplica** (§7), `nClassi` quello delle classi in
 ingresso. Il campo 15 `nc` è il numero di classi raggruppate in quella riga.

@@ -22,7 +22,13 @@ const DATAPOINTS = [
   'isin', 'SecId', 'Name', 'categoryName',
   'GBRReturnW1', 'GBRReturnM0', 'GBRReturnM1', 'GBRReturnM3', 'GBRReturnM6',
   'GBRReturnM12', 'GBRReturnM36', 'GBRReturnM60',
-  'starRatingM255', 'StandardDeviationM36', 'OngoingCostActual', 'closePriceDate'
+  'starRatingM255', 'StandardDeviationM36', 'OngoingCostActual', 'closePriceDate',
+  // rischio relativo e dimensione (campi 23-30, aggiunti il 28/09/2026). Alpha, IR e
+  // tracking error Morningstar sono misurati contro l'indice di riferimento della
+  // CATEGORIA, non contro il benchmark di prospetto: il nome di quest'ultimo viaggia
+  // a parte (PrimaryBenchmarkName) proprio per non confondere le due cose.
+  'InformationRatioM12', 'InformationRatioM36', 'InformationRatioM60',
+  'TrackingErrorM36', 'AlphaM36', 'MaxDrawdownM36', 'FundTNAV', 'PrimaryBenchmarkName'
 ].join('|');
 
 const HEADERS = {
@@ -499,6 +505,8 @@ function computeCats(funds) {
       accel: r2(cacc),
       sd: r1(csd), ocMed: r2(median(membri.map(f => f[13]))),
       starMed: r1(median(membri.map(f => f[11]))),
+      ir3: r2(median(membri.map(f => f[24]))),
+      aum: membri.reduce((s, f) => s + (f[29] || 0), 0) || null,
       ampiezza: amp, disp,
       score: null
     });
@@ -545,9 +553,28 @@ function statoOf(trend, accel) {
   return accel > 0 ? 'svolta' : 'peggioramento';
 }
 
+/* Nomi dei benchmark di prospetto in tabella: sono poche centinaia di stringhe
+   ripetute su migliaia di fondi, nel record viaggia solo l'indice (campo 30). */
+function tabellaBenchmark() {
+  const nomi = [], pos = new Map();
+  return {
+    nomi,
+    idx(n) {
+      const s = n === null || n === undefined ? '' : String(n).trim();
+      if (!s || /^n\/?a$/i.test(s)) return null;
+      if (!pos.has(s)) { pos.set(s, nomi.length); nomi.push(s); }
+      return pos.get(s);
+    }
+  };
+}
+
+// patrimonio del fondo (tutte le classi) in milioni di euro, intero
+const milioni = v => (v === null || v === undefined || !isFinite(v) || v <= 0) ? null : Math.round(v / 1e6);
+
 function build(rows, isinSet, series) {
   const seen = new Set();
   const classi = [];
+  const bench = tabellaBenchmark();
 
   // data di riferimento = moda di closePriceDate
   const dm = {};
@@ -585,7 +612,15 @@ function build(rows, isinSet, series) {
       null,                          // 19 delta rango (serve un archivio: vedi meta.prevDate)
       null,                          // 20 consistenza
       null,                          // 21 quartile di costo
-      r.SecId || isin                // 22 SecId, per il link alla scheda Morningstar
+      r.SecId || isin,               // 22 SecId, per il link alla scheda Morningstar
+      r2(r.InformationRatioM12),     // 23 Information Ratio 1 anno
+      r2(r.InformationRatioM36),     // 24 Information Ratio 3 anni
+      r2(r.InformationRatioM60),     // 25 Information Ratio 5 anni
+      r2(r.TrackingErrorM36),        // 26 tracking error 3 anni
+      r2(r.AlphaM36),                // 27 alpha 3 anni
+      r1(r.MaxDrawdownM36),          // 28 massimo ribasso 3 anni
+      milioni(r.FundTNAV),           // 29 patrimonio del fondo, mln EUR
+      bench.idx(r.PrimaryBenchmarkName) // 30 benchmark di prospetto -> benchNames[]
     ]);
   }
 
@@ -609,6 +644,7 @@ function build(rows, isinSet, series) {
   return {
     funds, cats,
     catNames: cats.map(c => c.nome),
+    benchNames: bench.nomi,
     macroOrder: MACROS,
     series: ser,
     meta: {
@@ -618,6 +654,7 @@ function build(rows, isinSet, series) {
       nCat: cats.length,
       nCatSottoSoglia: cats.filter(c => c.n < MIN_N).length,
       nNoOc: funds.filter(f => f[13] === null).length,
+      nIR: funds.filter(f => f[24] !== null && f[24] !== undefined).length,
       minN: MIN_N,
       prevDate: null,
       schema: 2
@@ -639,6 +676,7 @@ function upgradeSnapshot(snap, serieSet) {
     g[15] = 1;               // il vecchio nc veniva da un'altra regola: si riparte da 1
     g[17] = null; g[18] = null; g[19] = null; g[20] = null; g[21] = null;
     g[22] = f[17] || f[0];   // nello schema 1 il SecId stava in 17
+    for (let i = 23; i <= 30; i++) g[i] = null;   // rischio relativo e AUM: non c'erano
     return g;
   });
   const nClassi = classi.length;
@@ -646,6 +684,7 @@ function upgradeSnapshot(snap, serieSet) {
   snap.funds = funds;
   snap.cats = computeCats(funds);
   snap.catNames = snap.cats.map(c => c.nome);
+  snap.benchNames = snap.benchNames || [];
   snap.macroOrder = MACROS;
   snap.meta = snap.meta || {};
   snap.meta.schema = 2;

@@ -2,7 +2,7 @@
 /* Il nome della cache va cambiato a ogni ricablaggio: activate cancella tutte le
    cache che non si chiamano cosi', ed e' l'unico modo di buttare via la vecchia
    index.html da 2,2 MB che qualcuno ha ancora nel telefono. */
-const CACHE = 'oicr-monitor-v2';
+const CACHE = 'oicr-monitor-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './apple-touch-icon.png',
   './icon-192.png', './icon-512.png', './data/bootstrap.json'];
 
