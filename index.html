@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,13 +16,14 @@
 :root{--bg:#0b1220;--panel:#131c2e;--panel2:#1b2942;--line:#25324d;--txt:#e8edf6;--mut:#93a1b8;
   --accent:#4f9cff;--pos:#22c55e;--neg:#f4536b;--warn:#f5b642;--chip:#1e2c46;--hot:#ff7a45}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4}
 .wrap{max-width:760px;margin:0 auto;padding:0 12px 96px}
 header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0b1220 72%,rgba(11,18,32,.92));padding:calc(12px + env(safe-area-inset-top)) 12px 8px;border-bottom:1px solid var(--line)}
+.hrow>*{min-width:0}h1{white-space:nowrap}
 .hrow{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px}
 h1{font-size:18px;margin:0}h1 b{color:var(--accent)}
-.sub{font-size:11.5px;color:var(--mut);margin-top:2px;text-align:right;line-height:1.3;white-space:nowrap}
+.sub{font-size:11.5px;color:var(--mut);margin-top:2px;text-align:right;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .sub .asof{color:var(--txt);font-weight:600}
 .infob{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--chip);border:1px solid var(--line);color:var(--accent);font-weight:800;font-style:italic;font-family:Georgia,serif;font-size:15px;line-height:1;cursor:pointer;padding:0}
 .ihead{font-size:12.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
@@ -33,13 +34,13 @@ h1{font-size:18px;margin:0}h1 b{color:var(--accent)}
 .istep{display:flex;gap:9px;margin:8px 0;font-size:12.5px;line-height:1.45}
 .istep .n{flex:0 0 20px;height:20px;border-radius:50%;background:var(--hot);color:#1a0d06;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center}
 .controls{max-width:760px;margin:8px auto 0}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:4px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;background:var(--chip);color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .chip.on{background:var(--accent);color:#04101f;border-color:var(--accent)}
 .chip.mom.on{background:var(--hot);color:#1a0d06;border-color:var(--hot)}
 .row2{display:flex;gap:6px;margin-top:6px}
-select,input{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;width:100%;font-family:inherit}
+select,input{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:16px;width:100%;font-family:inherit}
 select{flex:1;min-width:0}
 .searchw{position:relative;flex:1}.searchw input{padding-left:32px}
 .searchw::before{content:"🔎";position:absolute;left:9px;top:8px;font-size:14px;opacity:.6}
@@ -81,7 +82,9 @@ nav button.on{color:var(--accent)}
 .sortrow .sc.on{background:var(--panel2);color:var(--txt);border-color:var(--accent)}
 .ov{position:fixed;inset:0;background:rgba(4,8,16,.7);z-index:50;display:none;align-items:flex-end;justify-content:center}
 .ov.on{display:flex}
-.sheet{background:var(--panel);width:100%;max-width:760px;border-radius:16px 16px 0 0;border-top:1px solid var(--line);max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.ov{overscroll-behavior:contain}
+html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;right:0;width:100%}
+.sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--panel);width:100%;max-width:760px;border-radius:16px 16px 0 0;border-top:1px solid var(--line);max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
 .sheet h2{font-size:16px;margin:0 6px 2px 0}.sheet .mc{font-size:12px;color:var(--mut);margin-bottom:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .grid.g2{grid-template-columns:1fr 1fr}
@@ -447,6 +450,15 @@ function openInfo(){
 document.getElementById('infoBtn').onclick=openInfo;
 function closeOv(){document.getElementById('ov').classList.remove('on')}
 document.getElementById('ov').onclick=e=>{if(e.target.id==='ov')closeOv()};
+/* Con la scheda aperta la pagina sotto resta ferma: il dito muove solo la scheda (01/10/2026). */
+(function(){const ov=document.getElementById('ov'),root=document.documentElement;let y=0;
+  new MutationObserver(()=>{const on=ov.classList.contains('on');
+    if(on&&!root.classList.contains('lock')){y=window.scrollY;document.body.style.top=(-y)+'px';root.classList.add('lock');}
+    else if(!on&&root.classList.contains('lock')){root.classList.remove('lock');document.body.style.top='';window.scrollTo(0,y);}
+  }).observe(ov,{attributes:true,attributeFilter:['class']});
+  /* Fuori dalla scheda (lo sfondo scuro) il trascinamento non fa nulla */
+  ov.addEventListener('touchmove',e=>{if(e.target===ov)e.preventDefault();},{passive:false});
+})();
 function boot(d,stato){
   DATA=d; F=d.funds||[]; CATS=d.cats||[]; MO=d.macroOrder||[]; META=d.meta||{}; SER=d.series||{};
   window.__DATA_META=META;                  // serve solo a tools/test_pagina.js
