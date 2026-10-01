@@ -110,6 +110,41 @@ html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;ri
 .mbar.mp{background:var(--pos)}.mbar.mn{background:var(--neg)}
 .agg{color:var(--warn);font-weight:600}
 .msLink{display:inline-block;margin-top:6px;font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+/* Confronto fondi (01/10/2026) */
+.cmpbtn{display:inline-block;margin:0 0 4px;font-size:12.5px;font-weight:700;color:var(--accent);background:var(--chip);border:1px solid var(--accent);border-radius:999px;padding:6px 14px;cursor:pointer}
+.cmpbtn.on{background:var(--accent);color:#04101f}
+#cmpBar{position:fixed;left:0;right:0;bottom:calc(52px + env(safe-area-inset-bottom));z-index:31;padding:0 10px 6px;pointer-events:none}
+.cmpin{pointer-events:auto;max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#16223a;border:1px solid var(--accent);border-radius:14px;padding:7px 8px 7px 12px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.cmpdots{flex:1;display:flex;align-items:center;gap:5px;min-width:0}
+.cmpdot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+.cmpn{font-size:11.5px;color:var(--mut);margin-left:4px}
+.cmpclr{background:none;border:none;color:var(--mut);font-size:12px;font-weight:600;padding:6px;cursor:pointer}
+.cmpgo{background:var(--accent);color:#04101f;border:none;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:800;cursor:pointer}
+.cmpgo:disabled{background:var(--chip);color:var(--mut)}
+body.hascmp .wrap{padding-bottom:150px}
+body.hascmp #etfLink{bottom:calc(116px + env(safe-area-inset-bottom)) !important}
+.cmpchart svg{height:auto}
+.cmpleg{display:flex;flex-direction:column;gap:3px;margin:8px 2px 0;font-size:12px}
+.cmpleg span{display:flex;align-items:center;gap:6px;min-width:0}
+.cmpleg i{flex:0 0 14px;height:3px;border-radius:2px}
+.cmpleg i.dash{background:repeating-linear-gradient(90deg,#93a1b8 0 4px,transparent 4px 7px)}
+.cmpleg b{margin-left:auto;padding-left:8px}
+.cmpwrap{overflow-x:auto;overscroll-behavior-x:contain;margin:0 -4px;padding:0 4px}
+.cmptab{border-collapse:collapse;width:100%;font-size:12px;min-width:340px}
+.cmptab th,.cmptab td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+.cmptab th{vertical-align:top;font-size:11px;font-weight:700;color:var(--txt);white-space:normal;min-width:74px;max-width:110px;line-height:1.25}
+.cmptab th i{display:block;height:4px;border-radius:2px;margin-bottom:4px}
+.cmptab th span{cursor:pointer;text-decoration:underline dotted var(--mut)}
+.cmprm{display:block;margin:4px 0 0 auto;background:none;border:1px solid var(--line);color:var(--mut);border-radius:6px;font-size:10px;padding:1px 6px;cursor:pointer}
+.cmptab td:first-child,.cmptab th:first-child{text-align:left;color:var(--mut);position:sticky;left:0;background:var(--panel);z-index:1}
+.cmptab tr.cmpg td{color:var(--accent);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding-top:10px;position:static}
+.cmptab td.best{font-weight:800;color:var(--pos);background:rgba(34,197,94,.10);border-radius:4px}
+.cmpcat{display:inline-block;white-space:normal;max-width:110px;font-size:10.5px;color:var(--mut);text-align:right}
+.cmpbest{text-transform:none;letter-spacing:0;color:var(--pos);font-weight:600;margin-left:6px}
+.cmpcorr td{text-align:center}.cmpcorr td:first-child{max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.cmpcorr .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.c4{background:rgba(244,83,107,.22);color:#ffb3c0}.c3{background:rgba(245,182,66,.18);color:#ffd88a}.c2{background:rgba(79,156,255,.16);color:#a9cdff}.c1{background:rgba(34,197,94,.16);color:#8ff0b3}
+.cl{display:inline-block;border-radius:5px;padding:0 5px;margin:2px 2px 0 0;font-size:10.5px}
 /* Barra di My Way: ← My Way · Portafogli · Fondi · ETF (Magüt), 28/09/2026 */
 .suite{max-width:760px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap}
 .suite a,.suite span{font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.4}
@@ -137,7 +172,7 @@ html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;ri
   <button data-tab="mappa"><span class="ic">🗺️</span>Mappa</button>
   <button data-tab="idee"><span class="ic">💡</span>Idee</button>
 </nav>
-<a href="https://etf-monitor-italia.vercel.app" style="position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a>
+<a id="etfLink" href="https://etf-monitor-italia.vercel.app" style="position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <script>
 let DATA,F,CATS,MO,META,SER,macroCounts={};
@@ -400,7 +435,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   const kv=(k,v,sm)=>'<div class="kv"><div class="k">'+k+'</div><div class="v'+(sm?' sm':'')+'">'+v+'</div></div>';
   const p=(v)=>'<span class="'+(v==null?'zero':v>0.05?'pos':(v<-0.05?'neg':'zero'))+'">'+(v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%')+'</span>';
   let b='<button class="closex" onclick="closeOv()">✕</button><h2>'+esc(f[I.name])+'</h2>'+
-    '<div class="mc"><span class="pill">'+f[I.isin]+'</span>'+esc(f[I.cat]||'categoria n/d')+'</div>'+
+    '<div class="mc"><span class="pill">'+f[I.isin]+'</span>'+esc(f[I.cat]||'categoria n/d')+'</div>'+cmpBtn(f[I.isin])+
     '<div class="mlbl">Andamento (crescita di 100 €)</div>'+growthChart(f)+
     '<div class="mlbl">Rendimenti recenti</div><div class="grid">'+kv('1 sett.',p(f[I.w1]),1)+kv('1 mese',p(f[I.m1]),1)+kv('3 mesi',p(f[I.m3]),1)+kv('6 mesi',p(f[I.m6]),1)+kv('YTD',p(f[I.ytd]),1)+'</div>'+
     '<div class="mlbl">Rendimenti annualizzati</div><div class="grid">'+kv('1 anno',p(f[I.r1]),1)+kv('3 anni p.a.',p(f[I.r3]),1)+kv('5 anni p.a.',p(f[I.r5]),1)+'</div>'+
@@ -443,6 +478,11 @@ function openInfo(){
     '<div class="istep"><div class="n">3</div><div><b>Idee</b> — l\'app incrocia momentum e <b>qualità</b>: fondi con forte momentum <b>e</b> rating ≥4★ in cima alla loro categoria.</div></div>'+
     '<div class="ip" style="margin:6px 0 0;font-size:11.5px;color:var(--mut)"><b style="color:var(--hot)">Esempio:</b> nella Mappa vedi le categorie più calde → entri e prendi i fondi in testa con buon rating → spunto pronto, già confrontato con i pari.</div>'+
     '</div>'+
+    '<div class="ihead">Il confronto tra fondi</div>'+
+    '<div class="ip">Nella scheda di un fondo tocca <b>+ Confronta</b>: compare una barra in basso. Scegli <b>da 2 a 5 fondi</b>, anche di categorie diverse, e tocca <b>Confronta</b>. La scelta resta salvata su questo dispositivo finché non la svuoti.</div>'+
+    '<div class="ip"><b>Grafico</b> — quanto ha reso ogni fondo dalla stessa data, su 1, 3 o 5 anni, con lo storico mensile Morningstar (che si ferma all\'ultimo aggiornamento, indicato sotto il grafico). Se un fondo è più giovane, tutte le linee partono da quando esistono tutti, così il confronto è alla pari. I fondi senza storico mensile restano in tabella ma non nel grafico: niente linee stimate. Se i fondi sono della stessa categoria compare anche la <b>mediana della categoria</b>, tratteggiata.</div>'+
+    '<div class="ip"><b>Tabella</b> — rendimenti, rischio, qualità del gestore, momentum e costi fianco a fianco. In verde il migliore di ogni riga: per volatilità e costo vince il più basso.</div>'+
+    '<div class="ip"><b>Correlazione</b> — da −1 a +1, calcolata sui rendimenti mensili. Vicino a 1 i due fondi salgono e scendono insieme: in portafoglio sono quasi un doppione. Vicino a 0 si muovono in modo indipendente e diversificano davvero.</div>'+
     '<div class="note">Il momentum è un segnale di <b>breve periodo</b>, non una previsione: va combinato con rischio, costo e obiettivo del cliente. Strumento informativo, non consulenza né sollecitazione all\'investimento. Le performance passate non sono indicative di quelle future.</div>';
   document.getElementById('sheet').innerHTML=s;
   document.getElementById('ov').classList.add('on');
@@ -459,6 +499,154 @@ document.getElementById('ov').onclick=e=>{if(e.target.id==='ov')closeOv()};
   /* Fuori dalla scheda (lo sfondo scuro) il trascinamento non fa nulla */
   ov.addEventListener('touchmove',e=>{if(e.target===ov)e.preventDefault();},{passive:false});
 })();
+/* ===== Confronto fino a 5 fondi (01/10/2026) =====
+   Scelta dalla scheda fondo ("+ Confronta"), barra in basso, vista nel foglio.
+   Grafico dalle serie mensili reali (data/series.json), ribasate a 0 sulla partenza comune;
+   correlazione dai rendimenti mensili dello stesso tratto. Nessuna stima per i fondi senza storico. */
+const CMPMAX=5, CMPCOL=['#4f9cff','#ff7a45','#c084fc','#2dd4bf','#facc15'];
+let CMP=[]; let CMPP=60;
+try{const s=JSON.parse(localStorage.getItem('oicrCmp')||'[]');if(Array.isArray(s))CMP=s.slice(0,CMPMAX);}catch(e){}
+function cmpSave(){try{localStorage.setItem('oicrCmp',JSON.stringify(CMP));}catch(e){}}
+function cmpFund(isin){return F.find(x=>x[I.isin]===isin);}
+function cmpToggle(isin){
+  const i=CMP.indexOf(isin);
+  if(i>=0)CMP.splice(i,1);
+  else{if(CMP.length>=CMPMAX){alert('Puoi confrontare al massimo '+CMPMAX+' fondi. Togline uno dalla barra in basso.');return;}CMP.push(isin);}
+  cmpSave();cmpBar();
+  const b=document.getElementById('cmpBtn');if(b&&b.dataset.isin===isin)b.outerHTML=cmpBtn(isin);
+}
+function cmpBtn(isin){const on=CMP.includes(isin);
+  return '<button id="cmpBtn" data-isin="'+isin+'" class="cmpbtn'+(on?' on':'')+'" onclick="cmpToggle(\''+isin+'\')">'+(on?'✓ Nel confronto':'+ Confronta')+'</button>';}
+function cmpShort(n){n=(n||'').replace(/\b(SICAV|Fund|Funds|Investment|Investments|Fonds)\b/gi,'').replace(/\s+/g,' ').trim();return n.length>26?n.slice(0,25)+'…':n;}
+function cmpBar(){
+  let bar=document.getElementById('cmpBar');
+  if(!bar){bar=document.createElement('div');bar.id='cmpBar';document.body.appendChild(bar);}
+  CMP=CMP.filter(cmpFund);
+  document.body.classList.toggle('hascmp',CMP.length>0);
+  if(!CMP.length){bar.innerHTML='';return;}
+  bar.innerHTML='<div class="cmpin"><div class="cmpdots">'+CMP.map((s,i)=>'<span class="cmpdot" style="background:'+CMPCOL[i]+'" title="'+esc(cmpFund(s)[I.name])+'"></span>').join('')+
+    '<span class="cmpn">'+CMP.length+'/'+CMPMAX+'</span></div>'+
+    '<button class="cmpclr" onclick="cmpClear()">Svuota</button>'+
+    '<button class="cmpgo" onclick="openCompare()"'+(CMP.length<2?' disabled':'')+'>'+(CMP.length<2?'Scegline almeno 2':'Confronta ('+CMP.length+')')+'</button></div>';
+}
+function cmpClear(){CMP=[];cmpSave();cmpBar();}
+function cmpRemove(isin){CMP=CMP.filter(x=>x!==isin);cmpSave();cmpBar();if(CMP.length>=2)openCompare();else closeOv();}
+function cmpPeriod(p){CMPP=p;openCompare();}
+
+/* serie cumulata (% da inizio) -> array di valori indice, allineati alla fine */
+function cmpSer(isin){const raw=SER[isin];if(!raw)return null;const c=raw.split(',').map(Number);if(c.length<7||c.some(x=>!isFinite(x)))return null;return c.map(v=>1+v/100);}
+function cmpMonthLabel(back){ // etichetta del mese che sta "back" mesi prima della fine serie
+  const c=META&&META.serieFine;if(!c)return back?back+' mesi fa':'fine';
+  const p=c.split('-');let y=+p[0],m=+p[1]-1-back;while(m<0){m+=12;y--;}return MESI[m]+' '+String(y).slice(2);}
+function cmpMedian(a){a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);if(!a.length)return null;const k=a.length>>1;return a.length%2?a[k]:(a[k-1]+a[k])/2;}
+function cmpCorr(a,b){const n=a.length;if(n<12)return null;const ma=a.reduce((s,x)=>s+x,0)/n,mb=b.reduce((s,x)=>s+x,0)/n;
+  let sab=0,saa=0,sbb=0;for(let i=0;i<n;i++){const da=a[i]-ma,db=b[i]-mb;sab+=da*db;saa+=da*da;sbb+=db*db;}
+  return saa&&sbb?sab/Math.sqrt(saa*sbb):null;}
+
+function cmpChart(fs){
+  const withS=fs.map((f,i)=>({f,i,s:cmpSer(f[I.isin])})).filter(o=>o.s);
+  const missing=fs.filter(f=>!cmpSer(f[I.isin]));
+  if(!withS.length)return {html:'<div class="note">Nessuno di questi fondi ha lo storico mensile: il grafico non si può disegnare.</div>',n:0,ret:{}};
+  const avail=Math.min(...withS.map(o=>o.s.length-1));
+  const N=Math.min(CMPP,avail); // mesi effettivi
+  const lines=withS.map(o=>{const s=o.s.slice(o.s.length-1-N);const b=s[0];return {i:o.i,f:o.f,v:s.map(x=>(x/b-1)*100),r:s.map((x,k)=>k?x/s[k-1]-1:null).slice(1)};});
+  // mediana di categoria se i fondi con storico sono tutti della stessa categoria
+  let med=null;const cats=[...new Set(withS.map(o=>o.f[I.cat]))];
+  if(cats.length===1&&cats[0]){const peers=F.filter(x=>x[I.cat]===cats[0]).map(x=>cmpSer(x[I.isin])).filter(s=>s&&s.length-1>=N).map(s=>s.slice(s.length-1-N));
+    if(peers.length>=5){med=[];for(let k=0;k<=N;k++)med.push(cmpMedian(peers.map(s=>(s[k]/s[0]-1)*100)));}}
+  const all=lines.flatMap(l=>l.v).concat(med||[]);let mn=Math.min(0,...all),mx=Math.max(0,...all);if(mx-mn<2){mx+=1;mn-=1;}
+  const W=Math.round(Math.max(300,Math.min(700,Math.min(760,window.innerWidth||360)-66))),H=W>500?230:190,L=36,R=8,T=8,B=20;
+  const X=k=>L+(N?k/N:0)*(W-L-R), Y=v=>T+(1-(v-mn)/(mx-mn))*(H-T-B);
+  const step=(mx-mn)>80?20:(mx-mn)>40?10:(mx-mn)>15?5:2;
+  let g='';for(let t=Math.ceil(mn/step)*step;t<=mx;t+=step){g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="'+(t===0?'#3a4c70':'#1f2b44')+'" stroke-width="1"'+(t===0?'':' stroke-dasharray="2 3"')+'/>'+
+    '<text x="'+(L-4)+'" y="'+(Y(t)+3).toFixed(1)+'" text-anchor="end" font-size="10" fill="#93a1b8">'+(t>0?'+':'')+t+'%</text>';}
+  const xt=[0,Math.round(N/2),N].filter((v,i,a)=>a.indexOf(v)===i).map(k=>'<text x="'+X(k).toFixed(1)+'" y="'+(H-5)+'" text-anchor="'+(k===0?'start':k===N?'end':'middle')+'" font-size="10" fill="#93a1b8">'+cmpMonthLabel(N-k)+'</text>').join('');
+  const pl=(v,c,ex)=>'<polyline points="'+v.map((y,k)=>X(k).toFixed(1)+','+Y(y).toFixed(1)).join(' ')+'" fill="none" stroke="'+c+'" stroke-width="'+(ex||2)+'" stroke-linejoin="round" stroke-linecap="round"'+(ex?' stroke-dasharray="4 3" opacity=".8"':'')+'/>';
+  const svg='<div class="chartbox cmpchart"><svg viewBox="0 0 '+W+' '+H+'">'+g+(med?pl(med,'#93a1b8',1.5):'')+lines.map(l=>pl(l.v,CMPCOL[l.i])).join('')+xt+'</svg></div>';
+  const ret={};lines.forEach(l=>{ret[l.f[I.isin]]=l.v[l.v.length-1];});
+  let leg='<div class="cmpleg">'+lines.map(l=>'<span><i style="background:'+CMPCOL[l.i]+'"></i>'+esc(cmpShort(l.f[I.name]))+' <b class="'+(l.v[N]>=0?'pos':'neg')+'">'+(l.v[N]>0?'+':'')+l.v[N].toFixed(1)+'%</b></span>').join('')+
+    (med?'<span><i class="dash"></i>mediana categoria <b>'+(med[N]>0?'+':'')+med[N].toFixed(1)+'%</b></span>':'')+'</div>';
+  let nt=[];
+  if(N<CMPP)nt.push('Il fondo più giovane ha <b>'+avail+' mesi</b> di storico: tutte le linee partono da 0 a <b>'+cmpMonthLabel(N)+'</b>, così il confronto è alla pari.');
+  if(missing.length)nt.push('Senza storico mensile, esclusi dal grafico e dalla correlazione: '+missing.map(f=>'<b>'+esc(cmpShort(f[I.name]))+'</b>').join(', ')+'.');
+  return {html:svg+leg+(nt.length?'<div class="note">'+nt.join(' ')+'</div>':''),n:N,lines,ret};
+}
+
+function cmpTable(fs,ret){
+  const P=v=>v==null?'—':(v>0?'+':'')+v.toFixed(1)+'%';
+  const D=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2);
+  const rk=f=>{const r=f[I.cat]?catRank(f):null;return r?r.rank+'° / '+r.n:'—';};
+  const MSTATE=f=>{const m3=f[I.m3],m6=f[I.m6];if(m3==null||m6==null)return null;const acc=4*m3-2*m6;return m6>=0?(acc>0?'🚀':'⚠️'):(acc>0?'↗️':'🔻');};
+  // [etichetta, valore, formato, verso migliore (+1 alto, -1 basso, 0 nessuno)]
+  const rows=[
+    ['g','Rendimenti'],
+    ['Nel grafico',f=>ret[f[I.isin]],P,1],
+    ['1 mese',f=>f[I.m1],P,1],['3 mesi',f=>f[I.m3],P,1],['6 mesi',f=>f[I.m6],P,1],['YTD',f=>f[I.ytd],P,1],
+    ['1 anno',f=>f[I.r1],P,1],['3 anni p.a.',f=>f[I.r3],P,1],['5 anni p.a.',f=>f[I.r5],P,1],
+    ['g','Rischio'],
+    ['Volatilità 3a',f=>f[I.sd],v=>v==null?'—':v.toFixed(1)+'%',-1],
+    ['Max ribasso 3a',f=>f[I.mdd],P,1],
+    ['Rend./rischio 3a',f=>f[I.r3]!=null&&f[I.sd]?f[I.r3]/f[I.sd]:null,D,1],
+    ['Tracking error 3a',f=>f[I.te],v=>v==null?'—':v.toFixed(1)+'%',0],
+    ['g','Qualità del gestore'],
+    ['IR 1 anno',f=>f[I.ir12],D,1],['IR 3 anni',f=>f[I.ir36],D,1],['IR 5 anni',f=>f[I.ir60],D,1],
+    ['Alpha 3a',f=>f[I.alpha],P,1],
+    ['Consistenza',f=>f[I.cons],v=>v==null?'—':v+'/5',1],
+    ['g','Momentum'],
+    ['Mom. rel.',f=>f[14],P,1],['Mom. 12-1',f=>f[17],P,1],['Stato',f=>MSTATE(f),v=>v||'—',0],
+    ['g','Costi e dati'],
+    ['Costo (TER)',f=>f[I.oc],v=>v==null?'—':v.toFixed(2)+'%',-1],
+    ['Quartile costo',f=>f[I.ocq],v=>v==null?'—':v+'°',-1],
+    ['Rating',f=>f[I.star],v=>v?'<span style="color:var(--warn)">'+'★'.repeat(v)+'</span>':'—',1],
+    ['Patrimonio',f=>f[I.aum],aumTxt,0],
+    ['Rango in cat. ('+mLabel()+')',f=>rk(f),v=>v,0],
+    ['Categoria',f=>f[I.cat]||'—',v=>'<span class="cmpcat">'+esc(v)+'</span>',0],
+  ];
+  let h='<div class="cmpwrap"><table class="cmptab"><thead><tr><th></th>'+fs.map((f,i)=>'<th><i style="background:'+CMPCOL[i]+'"></i><span onclick="detail(\''+f[I.isin]+'\')">'+esc(cmpShort(f[I.name]))+'</span><button class="cmprm" onclick="cmpRemove(\''+f[I.isin]+'\')" aria-label="Togli">✕</button></th>').join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{
+    if(r[0]==='g'){h+='<tr class="cmpg"><td colspan="'+(fs.length+1)+'">'+r[1]+'</td></tr>';return;}
+    const vals=fs.map(r[1]);const nums=vals.filter(v=>typeof v==='number'&&isFinite(v));
+    const best=r[3]&&nums.length>1&&new Set(nums).size>1?(r[3]>0?Math.max(...nums):Math.min(...nums)):null;
+    h+='<tr><td>'+r[0]+'</td>'+vals.map(v=>{const isB=best!=null&&v===best;const c=typeof v==='number'&&r[2]===P?(v>0.05?'pos':v<-0.05?'neg':'zero'):'';return '<td class="'+c+(isB?' best':'')+'">'+r[2](v)+'</td>';}).join('')+'</tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+
+function cmpCorrHtml(ch){
+  const L=(ch.lines||[]);if(L.length<2)return '';
+  if(ch.n<12)return '<div class="note">La correlazione serve almeno un anno di storico in comune: qui ce ne sono '+ch.n+' mesi.</div>';
+  const C=v=>v==null?'':v>=0.8?'c4':v>=0.5?'c3':v>=0.2?'c2':'c1';
+  let h='<div class="cmpwrap"><table class="cmptab cmpcorr"><thead><tr><th></th>'+L.map(l=>'<th><i style="background:'+CMPCOL[l.i]+'"></i></th>').join('')+'</tr></thead><tbody>';
+  L.forEach((a,x)=>{h+='<tr><td><i class="dot" style="background:'+CMPCOL[a.i]+'"></i>'+esc(cmpShort(a.f[I.name]))+'</td>'+L.map((b,y)=>{if(x===y)return '<td class="zero">—</td>';const c=cmpCorr(a.r,b.r);return '<td class="'+C(c)+'">'+(c==null?'—':c.toFixed(2).replace('.',','))+'</td>';}).join('')+'</tr>';});
+  h+='</tbody></table></div>';
+  // la coppia più legata e la meno legata, in parole
+  let hi=null,lo=null;for(let x=0;x<L.length;x++)for(let y=x+1;y<L.length;y++){const c=cmpCorr(L[x].r,L[y].r);if(c==null)continue;if(!hi||c>hi[0])hi=[c,x,y];if(!lo||c<lo[0])lo=[c,x,y];}
+  const nm=k=>'<b>'+esc(cmpShort(L[k].f[I.name]))+'</b>';
+  let s='';if(hi&&hi[0]>=0.8)s+='Si muovono quasi insieme '+nm(hi[1])+' e '+nm(hi[2])+' ('+hi[0].toFixed(2).replace('.',',')+'): tenerli entrambi diversifica poco. ';
+  if(lo&&lo!==hi&&lo[0]<0.5)s+='La coppia più indipendente è '+nm(lo[1])+' e '+nm(lo[2])+' ('+lo[0].toFixed(2).replace('.',',')+'). ';
+  return h+'<div class="note">'+s+'Calcolata sui rendimenti mensili degli ultimi '+ch.n+' mesi. <span class="c4 cl">≥0,8 quasi uguali</span> <span class="c3 cl">0,5–0,8 simili</span> <span class="c2 cl">0,2–0,5 diversi</span> <span class="c1 cl">&lt;0,2 indipendenti</span></div>';
+}
+
+function openCompare(){
+  const fs=CMP.map(cmpFund).filter(Boolean);
+  if(fs.length<2){alert('Aggiungi almeno 2 fondi al confronto dalla loro scheda.');return;}
+  const ch=cmpChart(fs);
+  const per=[[12,'1 anno'],[36,'3 anni'],[60,'5 anni']];
+  let b='<button class="closex" onclick="closeOv()">✕</button><h2>Confronto fondi</h2>'+
+    '<div class="mc">'+fs.length+' fondi · tocca un nome per aprirne la scheda, ✕ per toglierlo</div>'+
+    '<div class="mlbl">Performance cumulata</div><div class="chips" style="margin-bottom:6px">'+per.map(p=>'<button class="chip'+(CMPP===p[0]?' on':'')+'" onclick="cmpPeriod('+p[0]+')">'+p[1]+'</button>').join('')+'</div>'+
+    ch.html+
+    '<div class="mlbl">Fianco a fianco <span class="cmpbest">in verde il migliore della riga</span></div>'+cmpTable(fs,ch.ret)+
+    (ch.lines&&ch.lines.length>=2?'<div class="mlbl">Correlazione — si muovono insieme?</div>'+cmpCorrHtml(ch):'')+
+    '<div class="note"><b>Come leggerlo.</b> Il grafico mostra quanto avrebbe reso ogni fondo dalla stessa data di partenza, in % e nella valuta della classe, con lo storico mensile Morningstar fino a <b>'+(fineSerie()||'n/d')+'</b>: i rendimenti in tabella sono invece aggiornati al '+dataDeiPrezzi()+'. '+
+    'Quando i fondi sono tutti della stessa categoria compare la <b>mediana della categoria</b> (tratteggiata). In tabella il verde segna il valore migliore di ogni riga: per volatilità e costo vince il più basso. '+
+    'La <b>correlazione</b> va da −1 a +1: vicino a 1 i fondi salgono e scendono insieme, vicino a 0 si muovono in modo indipendente. Per un portafoglio, due fondi molto correlati sono quasi un doppione. '+
+    'Fondi di categorie diverse si confrontano solo con cautela: un azionario e un obbligazionario hanno rischi diversi. Informativa, non sollecitazione all\'investimento; le performance passate non sono indicative di quelle future.</div>';
+  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');
+  const sh=document.getElementById('sheet');sh.scrollTop=0;
+}
+window.cmpToggle=cmpToggle;window.cmpClear=cmpClear;window.cmpRemove=cmpRemove;window.cmpPeriod=cmpPeriod;window.openCompare=openCompare;
+
 function boot(d,stato){
   DATA=d; F=d.funds||[]; CATS=d.cats||[]; MO=d.macroOrder||[]; META=d.meta||{}; SER=d.series||{};
   window.__DATA_META=META;                  // serve solo a tools/test_pagina.js
@@ -466,7 +654,7 @@ function boot(d,stato){
   aggiungiDeltaRango();
   scriviTestata(stato);
   contaMacro();
-  buildMetricChips(); buildMacroChips(); buildCatSel(); render();
+  buildMetricChips(); buildMacroChips(); buildCatSel(); render(); cmpBar();
 }
 // le chiamate arrivano dagli onclick nell'HTML: devono restare globali
 window.detail=detail; window.closeOv=closeOv; window.setSort=setSort; window.pickCat=pickCat;

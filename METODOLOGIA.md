@@ -597,3 +597,29 @@ valuta e la data di chiusura, da `/api/nav?isin=<ISIN>` all'apertura della sched
 nella pagina finché resta aperta). Classi non in EUR: avviso "non convertito in €". Se Morningstar non ha
 il NAV o l'endpoint non risponde, la scheda lo dice e il resto funziona. Le altre classi dello stesso
 fondo non sono mostrate: la pagina conosce solo la classe rappresentativa.
+
+---
+
+## 15. Confronto fino a 5 fondi — aggiunto il 01/10/2026
+
+Tutto nel client (`index.html`, blocco "Confronto fino a 5 fondi"), nessuna chiamata nuova.
+
+- **Selezione**: pulsante "+ Confronta" nella scheda fondo, barra fissa sopra la navigazione,
+  massimo 5 (`CMPMAX`). La scelta è salvata in `localStorage` (`oicrCmp`), con try/catch: se il
+  browser non la conserva, il confronto funziona lo stesso per la sessione.
+- **Grafico**: dalle serie mensili di `data/series.json` (cumulate, base 0), allineate alla fine
+  (`meta.serieFine`). Periodi 1, 3, 5 anni. Se un fondo ha meno storico del periodo, **tutte** le
+  linee ripartono da 0 sulla partenza comune, e la nota lo dice. I fondi senza serie restano in
+  tabella ma **non** vanno nel grafico: niente linee stimate dai rendimenti, a differenza della
+  scheda singola. Se i fondi con serie sono tutti della stessa categoria e la categoria ha ≥5
+  serie abbastanza lunghe, si disegna la **mediana di categoria** tratteggiata.
+- **Tabella**: rendimenti, rischio, IR/alpha/consistenza, momentum (con lo stato 🚀⚠️↗️🔻 dai
+  valori m3/m6, stessa regola per segno), costo, rating, patrimonio, rango in categoria sulla
+  metrica scelta. Verde = migliore della riga; per volatilità, costo e quartile di costo vince il
+  più basso; tracking error, patrimonio e categoria non hanno un "migliore".
+- **Correlazione**: Pearson sui rendimenti mensili del tratto disegnato, solo con ≥12 mesi in
+  comune. Fasce: ≥0,8 quasi uguali · 0,5–0,8 simili · 0,2–0,5 diversi · <0,2 indipendenti. La nota
+  nomina la coppia più legata (se ≥0,8) e la più indipendente (se <0,5).
+- **Limite dichiarato in app**: il grafico si ferma a `serieFine`, la tabella è alla data dei prezzi.
+- La spiegazione per l'utente sta nella guida "i" (sezione "Il confronto tra fondi") e in fondo
+  alla vista di confronto.
