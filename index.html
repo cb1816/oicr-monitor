@@ -44,10 +44,43 @@ select,input{background:var(--panel);color:var(--txt);border:1px solid var(--lin
 select{flex:1;min-width:0}
 .searchw{position:relative;flex:1}.searchw input{padding-left:32px}
 .searchw::before{content:"🔎";position:absolute;left:9px;top:8px;font-size:14px;opacity:.6}
-nav{position:fixed;bottom:0;left:0;right:0;background:#0d1626;border-top:1px solid var(--line);display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:none;color:var(--mut);padding:9px 4px 8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
-nav button .ic{font-size:18px;line-height:1}
-nav button.on{color:var(--accent)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0d1626;border-top:1px solid var(--line);display:grid;grid-template-columns:2fr 3fr;gap:6px;z-index:30;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+/* Standard della suite (01/10/2026, come ETF Monitor v3): viste in due gruppi colorati */
+.ng{border-radius:10px;padding:3px 2px 0;min-width:0}
+.ng.sel{background:rgba(79,156,255,.07)}.ng.all{background:rgba(245,182,66,.06)}
+.ngl{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;text-align:center;white-space:nowrap}
+.ng.sel .ngl{color:var(--accent)}.ng.all .ngl{color:var(--warn)}
+.ngb{display:flex}
+nav button{flex:1;min-width:0;background:none;border:none;color:var(--mut);padding:9px 2px 10px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.ng.sel button.on{color:var(--accent);font-weight:800}.ng.all button.on{color:var(--warn);font-weight:800}
+.side{display:contents}
+.hmeta{max-width:760px;margin:2px auto 0}.hmeta .sub{text-align:left}
+.filtbtn{display:flex;align-items:center;gap:8px;width:100%;max-width:760px;margin:8px auto 0;background:#111b2d;border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;color:var(--txt);font-family:inherit}
+.filtbtn .fk{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.filtbtn .fs{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filtbtn .fm{font-size:12px;font-weight:700;color:var(--accent)}
+.controls{display:none}
+header.fopen{position:relative}
+header.fopen .controls{display:block;max-height:62vh;overflow-y:auto;background:#111b2d;border:1px solid var(--line);border-radius:12px;padding:8px 10px 10px;margin-top:6px}
+.fhead{display:flex;align-items:baseline;margin-bottom:6px}
+.fhead span{flex:1;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.azz{background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:4px 2px;font-family:inherit}
+.flbl{font-size:10.5px;color:var(--mut);margin:8px 2px 4px}
+.vhead{border-radius:12px;padding:10px 12px;margin:10px 0 4px;display:flex;flex-direction:column;gap:8px}
+.vhead.sel{background:rgba(79,156,255,.07);border:1px solid rgba(79,156,255,.30)}
+.vhead.all{background:rgba(245,182,66,.06);border:1px solid rgba(245,182,66,.28)}
+.vtop{display:flex;align-items:baseline;gap:8px}
+.vlab{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.vhead.sel .vlab{color:var(--accent)}.vhead.all .vlab{color:var(--warn)}
+.vtit{font-size:16px;font-weight:800}
+.vrow{display:flex;align-items:center;gap:8px;min-width:0}
+.vrow .chips{flex:1;min-width:0;padding-bottom:0}
+.vk{flex:0 0 auto;font-size:11px;color:var(--mut)}
+.vhead .sortrow{margin:0;align-items:center}
+.vhead.all .sortrow .sc.on{border-color:var(--warn)}
+.sortrow .sc{font-family:inherit}
+.vhead #vtools:empty{display:none}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px;max-width:min(92vw,460px);z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer}
 .card:active{background:var(--panel2)}
 .rank{flex:0 0 30px;text-align:center;font-weight:800;font-size:15px;color:var(--mut)}
@@ -113,7 +146,7 @@ html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;ri
 /* Confronto fondi (01/10/2026) */
 .cmpbtn{display:inline-block;margin:0 0 4px;font-size:12.5px;font-weight:700;color:var(--accent);background:var(--chip);border:1px solid var(--accent);border-radius:999px;padding:6px 14px;cursor:pointer}
 .cmpbtn.on{background:var(--accent);color:#04101f}
-#cmpBar{position:fixed;left:0;right:0;bottom:calc(52px + env(safe-area-inset-bottom));z-index:31;padding:0 10px 6px;pointer-events:none}
+#cmpBar{position:fixed;left:0;right:0;bottom:calc(68px + env(safe-area-inset-bottom));z-index:31;padding:0 10px 6px;pointer-events:none}
 .cmpin{pointer-events:auto;max-width:760px;margin:0 auto;display:flex;align-items:center;gap:8px;background:#16223a;border:1px solid var(--accent);border-radius:14px;padding:7px 8px 7px 12px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
 .cmpdots{flex:1;display:flex;align-items:center;gap:5px;min-width:0}
 .cmpdot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
@@ -122,7 +155,7 @@ html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;ri
 .cmpgo{background:var(--accent);color:#04101f;border:none;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:800;cursor:pointer}
 .cmpgo:disabled{background:var(--chip);color:var(--mut)}
 body.hascmp .wrap{padding-bottom:150px}
-body.hascmp #etfLink{bottom:calc(116px + env(safe-area-inset-bottom)) !important}
+body.hascmp #etfLink{bottom:calc(132px + env(safe-area-inset-bottom)) !important}
 .cmpchart svg{height:auto}
 .cmpleg{display:flex;flex-direction:column;gap:3px;margin:8px 2px 0;font-size:12px}
 .cmpleg span{display:flex;align-items:center;gap:6px;min-width:0}
@@ -147,32 +180,85 @@ body.hascmp #etfLink{bottom:calc(116px + env(safe-area-inset-bottom)) !important
 .cl{display:inline-block;border-radius:5px;padding:0 5px;margin:2px 2px 0 0;font-size:10.5px}
 /* Barra di My Way: ← My Way · Portafogli · Fondi · ETF (Magüt), 28/09/2026 */
 .suite{max-width:760px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap}
-.suite a,.suite span{font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.4}
+.suite a,.suite span,.suite button{font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.4;background:none;font-family:inherit;cursor:pointer}
 .suite span{color:#04101f;background:var(--accent);border-color:var(--accent)}
-.suite a:hover{color:var(--txt)}
+.suite a:hover,.suite button:hover{color:var(--txt)}
 .suite a.home{color:var(--accent);border-color:transparent;padding-left:2px}
+/* Layout PC (standard della suite, come ETF Monitor v3): solo schermi larghi con mouse. Telefono invariato. */
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+:root{--side:300px;--maxw:1240px}
+body{padding-left:var(--side)}
+.side{display:flex;flex-direction:column;gap:12px;position:fixed;left:0;top:0;bottom:0;width:var(--side);overflow-y:auto;background:#0d1626;border-right:1px solid var(--line);padding:16px 14px;z-index:30;box-sizing:border-box}
+header{display:contents}
+.hrow{order:1;max-width:none;margin:0;padding:0 4px}.hmeta{order:2;max-width:none;margin:-8px 0 0;padding:0 4px}
+nav{order:3}.controls{order:4}.suite{order:5;margin:auto 0 0;padding:0 4px;max-width:none}
+.suite{gap:4px}.suite a,.suite span,.suite button{font-size:11.5px;padding:2px 8px}
+h1{font-size:17px}
+.filtbtn{display:none}
+.controls{display:flex;flex-direction:column;background:#111b2d;border:1px solid var(--line);border-radius:12px;padding:10px;margin:0;max-width:none}
+.controls .row2{margin:0}
+select,input{font-size:14px}
+.flbl{margin:9px 2px 4px}
+#macroChips{display:grid;grid-template-columns:1fr 1fr;gap:4px;overflow:visible;padding:0}
+.controls .chip{font-size:11.5px;padding:5px 8px;border-radius:7px;white-space:normal;line-height:1.25}
+.chip:hover:not(.on){color:var(--txt);border-color:var(--mut)}
+#metricChips{flex-wrap:wrap;overflow:visible}
+nav{position:static;display:flex;flex-direction:column;gap:8px;background:none;border:none;padding:0}
+.ng{padding:8px;border:1px solid rgba(79,156,255,.30)}.ng.all{border-color:rgba(245,182,66,.28)}
+.ngl{text-align:left;font-size:10px;padding:2px 6px 6px}
+.ngb{flex-direction:column;gap:2px}
+nav button{text-align:left;padding:8px 10px;font-size:13.5px;border-radius:8px;color:#c9d3e3}
+nav button:hover{background:rgba(255,255,255,.05)}
+.ng.sel button.on{background:var(--accent);color:#04101f}.ng.all button.on{background:var(--warn);color:#1a1204}
+.wrap{max-width:var(--maxw);padding:18px 24px 48px}
+.vhead{margin:0 0 12px;padding:14px 16px}
+.vtit{font-size:19px}
+#view{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:10px;align-items:start}
+#view>*{min-width:0}
+#view>.sec,#view>.note,#view>.empty,#view>.sortrow{grid-column:1/-1}
+#view>.catcard.open{grid-column:1/-1}
+#view>.sec:first-child{margin-top:0}
+#view:has(.maprow){display:block;max-width:980px}
+.mlbl2{flex-basis:34%}
+.card:hover,.maprow:hover,.mini:hover,.cathead:hover{background:var(--panel2)}
+.ov{align-items:center}
+.sheet{max-width:880px;border-radius:16px;border:1px solid var(--line);max-height:86vh;padding:20px 22px}
+.chartbox svg{height:160px}
+.swapf{display:none}
+#cmpBar{left:var(--side);bottom:12px}
+body.hascmp .wrap{padding-bottom:110px}
+.toast{bottom:24px}
+}
 </style>
 </head>
 <body>
+<div class="side">
 <header>
-  <div class="suite" role="navigation" aria-label="My Way"><a href="https://myway-corrado.vercel.app" class="home">← My Way</a><a href="https://magut.vercel.app">Portafogli</a><span aria-current="page">Fondi</span><a href="https://etf-monitor-italia.vercel.app">ETF</a></div>
-  <div class="hrow"><h1><b>OICR</b> Monitor</h1><div style="display:flex;align-items:center;gap:8px"><div class="sub" id="cnt"></div><button id="infoBtn" class="infob" aria-label="Info">i</button></div></div>
-  <div class="controls">
-    <div class="chips" id="metricChips"></div>
-    <div class="chips" id="macroChips" style="margin-top:6px"></div>
-    <div class="row2"><select id="catSel"></select></div>
-    <div class="row2"><div class="searchw"><input id="q" placeholder="Cerca fondo o ISIN…" autocomplete="off"></div></div>
+  <div class="suite" role="navigation" aria-label="Suite My Way"><a href="https://myway-corrado.vercel.app">My Way</a><a href="https://magut.vercel.app">Portafogli</a><span aria-current="page">Fondi</span><a href="https://etf-monitor-italia.vercel.app">ETF</a><button type="button" id="clienti">Clienti</button></div>
+  <div class="hrow"><h1><b>OICR</b> Monitor</h1><button id="infoBtn" class="infob" aria-label="Info">i</button></div>
+  <div class="hmeta"><div class="sub" id="cnt"></div></div>
+  <button type="button" class="filtbtn" id="filtBtn" aria-expanded="false" aria-controls="controls"><span class="fk">Filtri</span><span class="fs" id="filtSum"></span><span class="fm" id="filtMod">Modifica</span></button>
+  <div class="controls" id="controls">
+    <div class="fhead"><span>Filtri</span><button type="button" class="azz" id="azzBtn">Azzera</button></div>
+    <div class="row2"><div class="searchw"><input id="q" placeholder="Cerca fondo o ISIN…" autocomplete="off" aria-label="Cerca fondo o ISIN"></div></div>
+    <div class="flbl">Macro</div>
+    <div class="chips" id="macroChips"></div>
+    <div class="flbl">Categoria Morningstar</div>
+    <div class="row2"><select id="catSel" aria-label="Categoria Morningstar"></select></div>
   </div>
 </header>
-<div class="wrap"><div id="view"></div></div>
-<nav>
-  <button data-tab="rank" class="on"><span class="ic">📊</span>Classifica</button>
-  <button data-tab="topflop"><span class="ic">🏆</span>Top / Flop</button>
-  <button data-tab="cat"><span class="ic">🗂️</span>Categorie</button>
-  <button data-tab="mappa"><span class="ic">🗺️</span>Mappa</button>
-  <button data-tab="idee"><span class="ic">💡</span>Idee</button>
+<nav aria-label="Viste">
+  <div class="ng sel"><div class="ngl">Quale fondo</div><div class="ngb"><button data-tab="rank" class="on">Classifica</button><button data-tab="topflop">Top / Flop</button></div></div>
+  <div class="ng all"><div class="ngl">Dove posizionarsi</div><div class="ngb"><button data-tab="cat">Categorie</button><button data-tab="mappa">Mappa</button><button data-tab="idee">Idee</button></div></div>
 </nav>
-<a id="etfLink" href="https://etf-monitor-italia.vercel.app" style="position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a>
+</div>
+<div class="wrap">
+  <section class="vhead sel" id="vhead" aria-label="Vista"><div class="vtop"><span class="vlab" id="vlab">Quale fondo</span><span class="vtit" id="vtit">Classifica</span></div>
+    <div class="vrow" id="mrow"><span class="vk">Criterio</span><div class="chips" id="metricChips"></div></div>
+    <div id="vtools"></div></section>
+  <div id="view"></div>
+</div>
+<a id="etfLink" href="https://etf-monitor-italia.vercel.app" class="swapf" style="position:fixed;bottom:calc(84px + env(safe-area-inset-bottom));right:14px;z-index:50;background:#1e293b;color:#e2e8f0;padding:8px 12px;border-radius:20px;font-size:12px;text-decoration:none;border:1px solid #334155">⇄ ETF</a>
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <script>
 let DATA,F,CATS,MO,META,SER,macroCounts={};
@@ -288,9 +374,7 @@ function viewCat(){const p=pool().filter(f=>f[I.cat]);const g={};p.forEach(f=>{(
   if(state.catSort==='val')keys.sort((a,b)=>((S[b].med??-1e9)-(S[a].med??-1e9)));
   else keys.sort((a,b)=>a.localeCompare(b,'it'));
   const valName=isMom()?mLabel():'rend. '+mLabel();
-  let h='<div class="sortrow"><div class="sc'+(state.catSort==='val'?' on':'')+'" onclick="setSort(\'val\')">Ordina per '+valName+' ▼</div>'+
-        '<div class="sc'+(state.catSort==='az'?' on':'')+'" onclick="setSort(\'az\')">A-Z</div></div>';
-  h+='<div class="sec'+(isMom()?' hot':'')+'">'+keys.length+' categorie · mediana '+valName+'</div>';
+  let h='<div class="sec'+(isMom()?' hot':'')+'">'+keys.length+' categorie · mediana '+valName+'</div>';
   keys.forEach(k=>{const st=S[k];const gg=withData(g[k]).sort(cmp);
     h+='<div class="catcard"><div class="cathead" onclick="this.parentNode.classList.toggle(\'open\')">'+
       '<div class="cn">'+esc(k)+'</div><div class="cval"><div class="cv '+cls(st.med)+'">'+fmt(st.med)+'</div>'+
@@ -302,10 +386,14 @@ function viewCat(){const p=pool().filter(f=>f[I.cat]);const g={};p.forEach(f=>{(
       '</div></div>';});
   return h;}
 function setSort(s){state.catSort=s;render();}
+/* Bottoni di ordinamento: nella testata della vista (standard della suite, 01/10/2026). */
+function sortRow(){const valName=isMom()?mLabel():'rend. '+mLabel();
+  return '<div class="sortrow"><span class="vk">Ordina</span><button type="button" class="sc'+(state.catSort==='val'?' on':'')+'" onclick="setSort(\'val\')">Per '+valName+' ▼</button>'+
+    '<button type="button" class="sc'+(state.catSort==='az'?' on':'')+'" onclick="setSort(\'az\')">A-Z</button></div>';}
 function miniRow(f){const v=val(f);return '<div class="mini" onclick="event.stopPropagation();detail(\''+f[I.isin]+'\')"><div class="mn">'+esc(f[I.name])+'</div><div class="pct '+cls(v)+'" style="font-size:13px">'+fmt(v)+'</div></div>';}
 
 function viewIdee(){const metricLbl=isMom()?mLabel():'rend. '+mLabel();
-  let h='<div class="note" style="margin:12px 4px">Spunti sui fondi con dati Morningstar, per '+metricLbl+'. Filtra per macro in alto per restringere.</div>';
+  let h='<div class="note" style="margin:12px 4px">Spunti sui fondi con dati Morningstar, per '+metricLbl+'. Filtra per macro nei filtri per restringere.</div>';
   const macros=state.macro?[state.macro]:MO.filter(m=>macroCounts[m]);
   // categorie in salita (per momentum/metrica)
   if(!state.cat){const p=F.filter(f=>f[I.cat]&&(!state.macro||f[I.macro]===state.macro)&&val(f)!=null);
@@ -391,7 +479,26 @@ function growthChart(f){
     '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+marks+'</svg>'+
     '<div class="chleg"><span>'+(maxMo>=60?'5 anni fa':maxMo>=36?'3 anni fa':(Math.round(maxMo)+' mesi fa'))+'</span><span>stima dai rendimenti · base 100</span><span>oggi</span></div></div>';
 }
-function render(){buildCatSel();const v=document.getElementById('view');
+/* Testata colorata della vista: blu = il fondo (Quale fondo), giallo = la categoria (Dove posizionarsi).
+   Il criterio qui vale per tutte le viste, quindi la riga resta sempre visibile. */
+const GRUPPO_TAB={rank:'sel',topflop:'sel',cat:'all',mappa:'all',idee:'all'};
+const TITOLO_TAB={rank:'Classifica',topflop:'Top / Flop',cat:'Categorie',mappa:'Mappa',idee:'Idee'};
+function testataVista(){const vh=document.getElementById('vhead');if(!vh)return;
+  const g=GRUPPO_TAB[state.tab]||'sel';vh.className='vhead '+g;
+  document.getElementById('vlab').textContent=g==='sel'?'Quale fondo':'Dove posizionarsi';
+  document.getElementById('vtit').textContent=TITOLO_TAB[state.tab]||'';
+  document.getElementById('vtools').innerHTML=state.tab==='cat'?sortRow():'';}
+function aggiornaFiltri(){const s=document.getElementById('filtSum');if(!s)return;
+  const p=[state.macro||'tutte le macro'];if(state.cat)p.push(state.cat);if(state.q)p.push('«'+state.q+'»');
+  s.textContent=p.join(' · ');}
+const filtBtn=document.getElementById('filtBtn');
+if(filtBtn)filtBtn.onclick=()=>{const o=document.querySelector('header').classList.toggle('fopen');
+  filtBtn.setAttribute('aria-expanded',o?'true':'false');
+  document.getElementById('filtMod').textContent=o?'Chiudi':'Modifica';};
+const azzBtn=document.getElementById('azzBtn');
+if(azzBtn)azzBtn.onclick=()=>{state.macro=null;state.cat=null;state.q='';
+  const q=document.getElementById('q');if(q)q.value='';buildMacroChips();buildCatSel();render();};
+function render(){buildCatSel();testataVista();aggiornaFiltri();const v=document.getElementById('view');
   v.innerHTML=state.tab==='rank'?viewRank():state.tab==='topflop'?viewTopFlop():state.tab==='cat'?viewCat():state.tab==='mappa'?viewMappa():viewIdee();
   window.scrollTo(0,0);}
 
@@ -464,7 +571,17 @@ function openInfo(){
     '<div class="mc">Monitoraggio dei fondi per categoria e generazione di idee</div>'+
     '<div class="ip">Mette i fondi <b>in classifica per categoria</b> per vedere a colpo d\'occhio i migliori e i peggiori e trovare spunti. Dati <b>Morningstar</b>: categoria ufficiale, rendimenti, rating, volatilità e costo.</div>'+
     '<div class="ihead">Le schede</div>'+
-    '<div class="ip"><b>Classifica</b> (tutti i fondi ordinati) · <b>Top/Flop</b> (i 10 migliori e peggiori) · <b>Categorie</b> (mediana e migliore/peggiore) · <b>Mappa</b> (tutte le categorie a confronto) · <b>Idee</b>. In alto: filtri per macro-categoria e categoria, e ricerca per nome o ISIN.</div>'+
+    '<div class="ip"><b>Classifica</b> (tutti i fondi ordinati) · <b>Top/Flop</b> (i 10 migliori e peggiori) · <b>Categorie</b> (mediana e migliore/peggiore) · <b>Mappa</b> (tutte le categorie a confronto) · <b>Idee</b>. </div>'+
+    '<div class="ihead">Dove stanno i comandi</div>'+
+    '<div class="ip"><b>Le schede</b> sono in due gruppi colorati: <b>blu, Quale fondo</b> (Classifica e Top / Flop, sul '+
+      'singolo fondo) e <b>giallo, Dove posizionarsi</b> (Categorie, Mappa e Idee, sulle categorie). Su PC stanno nella '+
+      'colonna di sinistra, su telefono nella barra in basso. La <b>testata colorata</b> sopra ogni scheda ripete il gruppo '+
+      'e contiene il <b>criterio</b> (vale per tutte le schede) e, in Categorie, l\'ordine.<br>'+
+      '<b>Filtri</b> (macro-categoria, categoria, ricerca per nome o ISIN): su PC sotto le schede; su telefono chiusi sotto '+
+      'la riga <b>Filtri</b>, che riassume quelli attivi: <b>Modifica</b> li apre, <b>Chiudi</b> li richiude, <b>Azzera</b> '+
+      'li riporta al valore iniziale.<br>'+
+      '<b>Barra della suite</b>: My Way · Portafogli · Fondi · ETF · Clienti, uguale in tutte le app. <b>Clienti</b> apre il '+
+      'CRM, che gira solo sul Mac: i dati dei clienti non passano da qui.</div>'+
     '<div class="ihead">Le metriche</div>'+
     '<div class="ip">Con un tocco scegli il criterio con cui l\'app ordina e confronta: <b>1 sett., 1 mese, 3 mesi, YTD, 1 anno, 3 e 5 anni</b> e tre varianti di <b>🔥 Momentum</b>, più <b>🎯 Consistenza</b> e <b>📐 Information Ratio</b> a 1 e 3 anni, calcolato da Morningstar contro l\'indice della categoria. La scelta si applica ovunque — classifiche, categorie e mappa.</div>'+
     '<div class="ibox">'+
@@ -715,6 +832,22 @@ window.__boot=boot; window.__testata=scriviTestata;
   Promise.all([pCopia,pFresco]).then(function(){ if(!disegnato) errore(); });
 })();
 
+</script>
+<script>
+/* Voce "Clienti" della barra della suite: apre il CRM (Portfolio Workbench) sul Mac con il collegamento
+   portfolioworkbench://apri, come in My Way (clienti.js). Nessun dato passa di qui. */
+(function(){const b=document.getElementById('clienti');if(!b)return;
+  const avviso=t=>{const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;
+    document.body.appendChild(d);setTimeout(()=>d.remove(),7000);};
+  b.addEventListener('click',()=>{
+    const mac=/Mac/.test(navigator.platform||navigator.userAgent)&&!/iPhone|iPad/.test(navigator.userAgent)&&navigator.maxTouchPoints<2;
+    if(!mac){avviso('Clienti è il CRM e si apre solo sul Mac. I dati dei clienti non escono dal Mac.');return;}
+    let aperto=false;const via=()=>{aperto=true;};
+    window.addEventListener('blur',via,{once:true});document.addEventListener('visibilitychange',via,{once:true});
+    location.href='portfolioworkbench://apri';avviso('Apro il CRM sul Mac… ci vuole qualche secondo.');
+    setTimeout(()=>{window.removeEventListener('blur',via);document.removeEventListener('visibilitychange',via);
+      if(!aperto&&document.hasFocus())avviso('Il CRM non ha risposto. Se non si apre, aprilo dal Dock o dalla Scrivania.');},8000);});
+})();
 </script>
 <script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
 </body>
