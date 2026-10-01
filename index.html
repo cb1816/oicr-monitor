@@ -120,7 +120,6 @@ html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;ri
 .sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--panel);width:100%;max-width:760px;border-radius:16px 16px 0 0;border-top:1px solid var(--line);max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
 .sheet h2{font-size:16px;margin:0 6px 2px 0}.sheet .mc{font-size:12px;color:var(--mut);margin-bottom:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.grid.g2{grid-template-columns:1fr 1fr}
 .kv{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
 .kv .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
 .kv .v{font-size:16px;font-weight:800;margin-top:2px}.kv .v.sm{font-size:13px}
@@ -183,7 +182,7 @@ body.hascmp #etfLink{bottom:calc(132px + env(safe-area-inset-bottom)) !important
 .suite a,.suite span,.suite button{font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.4;background:none;font-family:inherit;cursor:pointer}
 .suite span{color:#04101f;background:var(--accent);border-color:var(--accent)}
 .suite a:hover,.suite button:hover{color:var(--txt)}
-.suite a.home{color:var(--accent);border-color:transparent;padding-left:2px}
+@media (hover:none) and (pointer:coarse){#clienti{display:none !important}}
 /* Layout PC (standard della suite, come ETF Monitor v3): solo schermi larghi con mouse. Telefono invariato. */
 @media (min-width:1024px) and (hover:hover) and (pointer:fine){
 :root{--side:300px;--maxw:1240px}
@@ -835,13 +834,13 @@ window.__boot=boot; window.__testata=scriviTestata;
 </script>
 <script>
 /* Voce "Clienti" della barra della suite: apre il CRM (Portfolio Workbench) sul Mac con il collegamento
-   portfolioworkbench://apri, come in My Way (clienti.js). Nessun dato passa di qui. */
+   portfolioworkbench://apri, come in My Way (clienti.js); fuori dal Mac il tasto sparisce. Nessun dato passa di qui. */
 (function(){const b=document.getElementById('clienti');if(!b)return;
+  // Fuori dal Mac (iPhone, iPad, altri computer) il tasto non può aprire nulla: lo si toglie, come in My Way e Magüt.
+  if(!(/Mac/.test(navigator.platform||navigator.userAgent)&&!/iPhone|iPad/.test(navigator.userAgent)&&navigator.maxTouchPoints<2)){b.remove();return;}
   const avviso=t=>{const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;
     document.body.appendChild(d);setTimeout(()=>d.remove(),7000);};
   b.addEventListener('click',()=>{
-    const mac=/Mac/.test(navigator.platform||navigator.userAgent)&&!/iPhone|iPad/.test(navigator.userAgent)&&navigator.maxTouchPoints<2;
-    if(!mac){avviso('Clienti è il CRM e si apre solo sul Mac. I dati dei clienti non escono dal Mac.');return;}
     let aperto=false;const via=()=>{aperto=true;};
     window.addEventListener('blur',via,{once:true});document.addEventListener('visibilitychange',via,{once:true});
     location.href='portfolioworkbench://apri';avviso('Apro il CRM sul Mac… ci vuole qualche secondo.');
