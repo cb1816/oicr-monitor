@@ -34,7 +34,7 @@ h1{font-size:18px;margin:0}h1 b{color:var(--accent)}
 .istep{display:flex;gap:9px;margin:8px 0;font-size:12.5px;line-height:1.45}
 .istep .n{flex:0 0 20px;height:20px;border-radius:50%;background:var(--hot);color:#1a0d06;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center}
 .controls{max-width:760px;margin:8px auto 0}
-.chips{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:4px;scrollbar-width:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;background:var(--chip);color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .chip.on{background:var(--accent);color:#04101f;border-color:var(--accent)}
@@ -115,9 +115,8 @@ header.fopen .controls{display:block;max-height:62vh;overflow-y:auto;background:
 .sortrow .sc.on{background:var(--panel2);color:var(--txt);border-color:var(--accent)}
 .ov{position:fixed;inset:0;background:rgba(4,8,16,.7);z-index:50;display:none;align-items:flex-end;justify-content:center}
 .ov.on{display:flex}
-.ov{overscroll-behavior:contain}
 html.lock,html.lock body{overflow:hidden}html.lock body{position:fixed;left:0;right:0;width:100%}
-.sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--panel);width:100%;max-width:760px;border-radius:16px 16px 0 0;border-top:1px solid var(--line);max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet{overscroll-behavior:contain;background:var(--panel);width:100%;max-width:760px;border-radius:16px 16px 0 0;border-top:1px solid var(--line);max-height:88vh;overflow:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom))}
 .sheet h2{font-size:16px;margin:0 6px 2px 0}.sheet .mc{font-size:12px;color:var(--mut);margin-bottom:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .kv{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
@@ -612,8 +611,6 @@ document.getElementById('ov').onclick=e=>{if(e.target.id==='ov')closeOv()};
     if(on&&!root.classList.contains('lock')){y=window.scrollY;document.body.style.top=(-y)+'px';root.classList.add('lock');}
     else if(!on&&root.classList.contains('lock')){root.classList.remove('lock');document.body.style.top='';window.scrollTo(0,y);}
   }).observe(ov,{attributes:true,attributeFilter:['class']});
-  /* Fuori dalla scheda (lo sfondo scuro) il trascinamento non fa nulla */
-  ov.addEventListener('touchmove',e=>{if(e.target===ov)e.preventDefault();},{passive:false});
 })();
 /* ===== Confronto fino a 5 fondi (01/10/2026) =====
    Scelta dalla scheda fondo ("+ Confronta"), barra in basso, vista nel foglio.
@@ -732,11 +729,12 @@ function cmpCorrHtml(ch){
   const L=(ch.lines||[]);if(L.length<2)return '';
   if(ch.n<12)return '<div class="note">La correlazione serve almeno un anno di storico in comune: qui ce ne sono '+ch.n+' mesi.</div>';
   const C=v=>v==null?'':v>=0.8?'c4':v>=0.5?'c3':v>=0.2?'c2':'c1';
+  const M=L.map(a=>L.map(b=>a===b?null:cmpCorr(a.r,b.r)));
   let h='<div class="cmpwrap"><table class="cmptab cmpcorr"><thead><tr><th></th>'+L.map(l=>'<th><i style="background:'+CMPCOL[l.i]+'"></i></th>').join('')+'</tr></thead><tbody>';
-  L.forEach((a,x)=>{h+='<tr><td><i class="dot" style="background:'+CMPCOL[a.i]+'"></i>'+esc(cmpShort(a.f[I.name]))+'</td>'+L.map((b,y)=>{if(x===y)return '<td class="zero">—</td>';const c=cmpCorr(a.r,b.r);return '<td class="'+C(c)+'">'+(c==null?'—':c.toFixed(2).replace('.',','))+'</td>';}).join('')+'</tr>';});
+  L.forEach((a,x)=>{h+='<tr><td><i class="dot" style="background:'+CMPCOL[a.i]+'"></i>'+esc(cmpShort(a.f[I.name]))+'</td>'+L.map((b,y)=>{if(x===y)return '<td class="zero">—</td>';const c=M[x][y];return '<td class="'+C(c)+'">'+(c==null?'—':c.toFixed(2).replace('.',','))+'</td>';}).join('')+'</tr>';});
   h+='</tbody></table></div>';
   // la coppia più legata e la meno legata, in parole
-  let hi=null,lo=null;for(let x=0;x<L.length;x++)for(let y=x+1;y<L.length;y++){const c=cmpCorr(L[x].r,L[y].r);if(c==null)continue;if(!hi||c>hi[0])hi=[c,x,y];if(!lo||c<lo[0])lo=[c,x,y];}
+  let hi=null,lo=null;for(let x=0;x<L.length;x++)for(let y=x+1;y<L.length;y++){const c=M[x][y];if(c==null)continue;if(!hi||c>hi[0])hi=[c,x,y];if(!lo||c<lo[0])lo=[c,x,y];}
   const nm=k=>'<b>'+esc(cmpShort(L[k].f[I.name]))+'</b>';
   let s='';if(hi&&hi[0]>=0.8)s+='Si muovono quasi insieme '+nm(hi[1])+' e '+nm(hi[2])+' ('+hi[0].toFixed(2).replace('.',',')+'): tenerli entrambi diversifica poco. ';
   if(lo&&lo!==hi&&lo[0]<0.5)s+='La coppia più indipendente è '+nm(lo[1])+' e '+nm(lo[2])+' ('+lo[0].toFixed(2).replace('.',',')+'). ';
@@ -754,12 +752,8 @@ function openCompare(){
     ch.html+
     '<div class="mlbl">Fianco a fianco <span class="cmpbest">in verde il migliore della riga</span></div>'+cmpTable(fs,ch.ret)+
     (ch.lines&&ch.lines.length>=2?'<div class="mlbl">Correlazione — si muovono insieme?</div>'+cmpCorrHtml(ch):'')+
-    '<div class="note"><b>Come leggerlo.</b> Il grafico mostra quanto avrebbe reso ogni fondo dalla stessa data di partenza, in % e nella valuta della classe, con lo storico mensile Morningstar fino a <b>'+(fineSerie()||'n/d')+'</b>: i rendimenti in tabella sono invece aggiornati al '+dataDeiPrezzi()+'. '+
-    'Quando i fondi sono tutti della stessa categoria compare la <b>mediana della categoria</b> (tratteggiata). In tabella il verde segna il valore migliore di ogni riga: per volatilità e costo vince il più basso. '+
-    'La <b>correlazione</b> va da −1 a +1: vicino a 1 i fondi salgono e scendono insieme, vicino a 0 si muovono in modo indipendente. Per un portafoglio, due fondi molto correlati sono quasi un doppione. '+
-    'Fondi di categorie diverse si confrontano solo con cautela: un azionario e un obbligazionario hanno rischi diversi. Informativa, non sollecitazione all\'investimento; le performance passate non sono indicative di quelle future.</div>';
-  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');
-  const sh=document.getElementById('sheet');sh.scrollTop=0;
+    '<div class="note">Grafico con lo storico mensile Morningstar fino a <b>'+(fineSerie()||'n/d')+'</b>, tabella ai prezzi del '+dataDeiPrezzi()+', valori nella valuta della classe. Come leggerlo: guida <b>i</b>, "Il confronto tra fondi". Informativa, non sollecitazione all\'investimento; le performance passate non sono indicative di quelle future.</div>';
+  const sh=document.getElementById('sheet');sh.innerHTML=b;sh.scrollTop=0;document.getElementById('ov').classList.add('on');
 }
 window.cmpToggle=cmpToggle;window.cmpClear=cmpClear;window.cmpRemove=cmpRemove;window.cmpPeriod=cmpPeriod;window.openCompare=openCompare;
 

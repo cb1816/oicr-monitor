@@ -621,5 +621,5 @@ Tutto nel client (`index.html`, blocco "Confronto fino a 5 fondi"), nessuna chia
   comune. Fasce: ≥0,8 quasi uguali · 0,5–0,8 simili · 0,2–0,5 diversi · <0,2 indipendenti. La nota
   nomina la coppia più legata (se ≥0,8) e la più indipendente (se <0,5).
 - **Limite dichiarato in app**: il grafico si ferma a `serieFine`, la tabella è alla data dei prezzi.
-- La spiegazione per l'utente sta nella guida "i" (sezione "Il confronto tra fondi") e in fondo
-  alla vista di confronto.
+- La spiegazione per l'utente sta in un posto solo, la guida "i" (sezione "Il confronto tra
+  fondi"); in fondo alla vista resta una nota di una riga con date dei dati e rimando alla guida.
