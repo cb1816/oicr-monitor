@@ -199,6 +199,10 @@ const ok = (c, m) => { console.log((c ? '  ok   ' : '  KO   ') + m); if (!c) ko+
 
   // 6. filtri e ricerca
   console.log('\n6) filtri');
+  // su telefono i filtri stanno chiusi sotto la riga "Filtri" (standard della suite, 01/10/2026)
+  await page.click('#filtBtn');
+  await page.waitForTimeout(200);
+  ok(await page.locator('#q').isVisible(), '"Modifica" apre i filtri');
   await page.locator('#q').fill('azion');
   await page.waitForTimeout(300);
   ok((await page.locator('.card').count()) > 0, 'la ricerca produce risultati');
@@ -209,6 +213,11 @@ const ok = (c, m) => { console.log((c ? '  ok   ' : '  KO   ') + m); if (!c) ko+
   await macro.click();
   await page.waitForTimeout(300);
   ok((await page.locator('.card').count()) > 0, 'il filtro macro "' + nomeMacro.trim() + '" produce risultati');
+  ok((await page.locator('#filtSum').textContent()).includes(nomeMacro.replace(/\s*\(\d+\)\s*$/, '').trim()), 'il riassunto dei filtri mostra la macro scelta');
+  await page.click('#azzBtn');
+  await page.waitForTimeout(200);
+  ok((await page.locator('#filtSum').textContent()).startsWith('tutte le macro'), '"Azzera" riporta i filtri al valore iniziale');
+  await page.click('#filtBtn');
 
   // 7. il pulsante ponte verso ETF Monitor — gia' perso una volta
   console.log('\n7) pulsante ponte');
