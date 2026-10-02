@@ -560,7 +560,7 @@ function detail(isin){const f=F.find(x=>x[I.isin]===isin);if(!f)return;
   b+='<div class="note"><span class="pill">Classe rappr. di '+(f[I.nc]||1)+' '+((f[I.nc]||1)===1?'classe':'classi')+'</span></div>'+
     (f[I.sec]&&f[I.sec]!==f[I.isin]?'<a class="msLink" target="_blank" rel="noopener" href="https://www.morningstar.it/it/funds/snapshot/snapshot.aspx?id='+encodeURIComponent(f[I.sec])+'">Scheda Morningstar ↗</a>':'')+
     '<div class="note">Fonte: Morningstar Italia · rendimenti al '+dataDeiPrezzi()+' nella valuta della classe'+(fineSerie()?' · grafico storico fino a '+fineSerie():'')+'. Informativa, non sollecitazione all\'investimento.</div>';
-  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');caricaNav(f[I.isin]);}
+  document.getElementById('sheet').innerHTML=b;document.getElementById('ov').classList.add('on');document.getElementById('sheet').scrollTop=0;caricaNav(f[I.isin]);}
 function scoreOf(f,ix){ix=ix||(isMom()?state.metric:14);const key=f[I.cat]+'|'+ix;if(!catCache[key]){const a=F.filter(x=>x[I.cat]===f[I.cat]&&x[ix]!=null).sort((x,y)=>y[ix]-x[ix]);catCache[key]=a.map(x=>x[I.isin]);}
   const a=catCache[key];const i=a.indexOf(f[I.isin]);return i<0?50:(a.length>1?Math.round((a.length-i-1)/(a.length-1)*100):50);}
 function openInfo(){
@@ -600,7 +600,7 @@ function openInfo(){
     '<div class="ip"><b>Correlazione</b> — da −1 a +1, calcolata sui rendimenti mensili. Vicino a 1 i due fondi salgono e scendono insieme: in portafoglio sono quasi un doppione. Vicino a 0 si muovono in modo indipendente e diversificano davvero.</div>'+
     '<div class="note">Il momentum è un segnale di <b>breve periodo</b>, non una previsione: va combinato con rischio, costo e obiettivo del cliente. Strumento informativo, non consulenza né sollecitazione all\'investimento. Le performance passate non sono indicative di quelle future.</div>';
   document.getElementById('sheet').innerHTML=s;
-  document.getElementById('ov').classList.add('on');
+  document.getElementById('ov').classList.add('on');document.getElementById('sheet').scrollTop=0;
 }
 document.getElementById('infoBtn').onclick=openInfo;
 function closeOv(){document.getElementById('ov').classList.remove('on')}
@@ -753,7 +753,7 @@ function openCompare(){
     '<div class="mlbl">Fianco a fianco <span class="cmpbest">in verde il migliore della riga</span></div>'+cmpTable(fs,ch.ret)+
     (ch.lines&&ch.lines.length>=2?'<div class="mlbl">Correlazione — si muovono insieme?</div>'+cmpCorrHtml(ch):'')+
     '<div class="note">Grafico con lo storico mensile Morningstar fino a <b>'+(fineSerie()||'n/d')+'</b>, tabella ai prezzi del '+dataDeiPrezzi()+', valori nella valuta della classe. Come leggerlo: guida <b>i</b>, "Il confronto tra fondi". Informativa, non sollecitazione all\'investimento; le performance passate non sono indicative di quelle future.</div>';
-  const sh=document.getElementById('sheet');sh.innerHTML=b;sh.scrollTop=0;document.getElementById('ov').classList.add('on');
+  const sh=document.getElementById('sheet');sh.innerHTML=b;document.getElementById('ov').classList.add('on');sh.scrollTop=0;
 }
 window.cmpToggle=cmpToggle;window.cmpClear=cmpClear;window.cmpRemove=cmpRemove;window.cmpPeriod=cmpPeriod;window.openCompare=openCompare;
 
